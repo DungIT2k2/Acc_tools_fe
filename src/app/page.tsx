@@ -3,17 +3,28 @@
 import { useState } from "react";
 import styles from "../styles/Login.module.css";
 import callApi from "../lib/axios";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const router = useRouter();
 
   const handleLogin = async (e: any) => {
     e.preventDefault();
-    const res = await callApi.post("/auth/login", { username, password });
-    console.log("Email:", username, "Password:", password);
-    console.log("Login success:", res.data);
-    alert("Đăng nhập thành công");
+    try {
+      const res = await callApi.post("/auth/login", { username, password });
+
+      const accessToken = res.data?.access_token;
+      localStorage.setItem("access_token", accessToken);
+
+      router.push("/menu");
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message || "Có lỗi xảy ra";
+
+      alert(message);
+    }
   };
 
   return (

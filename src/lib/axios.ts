@@ -2,8 +2,8 @@ import axios from "axios";
 
 // Tạo instance Axios
 const callApi = axios.create({
-  baseURL: "https://acc-tools-be.onrender.com/", // Thay bằng API của bạn
-  timeout: 10000, // 10 giây timeout
+  baseURL: "https://acc-tools-be.onrender.com",
+  timeout: 60000,
   headers: {
     "Content-Type": "application/json",
   },
@@ -12,9 +12,12 @@ const callApi = axios.create({
 // Optional: interceptors để log hoặc handle error toàn cục
 callApi.interceptors.request.use(
   (config) => {
-    // Ví dụ: thêm token nếu cần
-    const token = localStorage.getItem("token");
-    if (token) config.headers.Authorization = `Bearer ${token}`;
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("access_token");
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    }
     return config;
   },
   (error) => Promise.reject(error)
