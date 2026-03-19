@@ -27,6 +27,10 @@ callApi.interceptors.response.use(
   (response) => response,
   (error) => {
     // Handle error toàn cục, ví dụ alert
+    if (error.response?.status === 401) {
+      localStorage.removeItem("access_token");
+      window.location.href = "/login";
+    }
     console.error("API Error:", error.response?.data || error.message);
     return Promise.reject(error);
   }
