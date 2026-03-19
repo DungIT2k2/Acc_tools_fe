@@ -39,7 +39,7 @@ export default function ModulePage() {
 
   return (
     <div className={styles.container}>
-      <h1>Module 1 - So sánh file</h1>
+      <h1>So khớp với file thuế</h1>
 
       <div className={styles.uploadBox}>
         <div>
