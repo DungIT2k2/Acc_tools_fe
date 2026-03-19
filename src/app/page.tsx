@@ -8,10 +8,12 @@ import { useRouter } from "next/navigation";
 export default function Home() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleLogin = async (e: any) => {
     e.preventDefault();
+    setLoading(true);
     try {
       const res = await callApi.post("/auth/login", { username, password });
 
@@ -24,7 +26,10 @@ export default function Home() {
         err?.response?.data?.message || "Có lỗi xảy ra";
 
       alert(message);
+    } finally {
+      setLoading(false);
     }
+
   };
 
   return (
@@ -54,7 +59,14 @@ export default function Home() {
             />
           </div>
 
-          <button type="submit" className={styles.button}>Đăng nhập</button>
+          <button
+            type="submit"
+            className={styles.button}
+            disabled={loading}
+          >
+            {loading && <span className={styles.spinner}></span>}
+            {loading ? "Đang đăng nhập..." : "Đăng nhập"}
+          </button>
         </form>
       </div>
     </div>
