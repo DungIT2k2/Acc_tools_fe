@@ -12,18 +12,39 @@ export default function MenuPage() {
         if (!token) {
             router.push("/");
         }
-    }, []);
+    }, [router]);
 
     const modules = [
-        { name: "So khớp với file thuế", path: "/module" },
-        { name: "Hoá đơn điện tử", path: "/invoice" },
-        { name: "Chức năng 3", path: "/module-3" },
-        { name: "Chức năng 4", path: "/module-4" },
+        {
+            name: "So khớp với file thuế",
+            path: "/module",
+            icon: "📊",
+        },
+        {
+            name: "Hoá đơn điện tử",
+            path: "/invoice",
+            icon: "🧾",
+        },
+        {
+            name: "Chức năng 3",
+            path: "/module-3",
+            icon: "📁",
+        },
+        {
+            name: "Chức năng 4",
+            path: "/module-4",
+            icon: "⚙️",
+        },
     ];
 
     return (
         <div className={styles.container}>
-            <h1 className={styles.title}>Menu</h1>
+            <div className={styles.headerBox}>
+                <h1 className={styles.title}>Menu chức năng</h1>
+                <p className={styles.subtitle}>
+                    Chọn chức năng bạn muốn sử dụng
+                </p>
+            </div>
 
             <div className={styles.grid}>
                 {modules.map((item, index) => (
@@ -32,7 +53,10 @@ export default function MenuPage() {
                         className={styles.card}
                         onClick={() => router.push(item.path)}
                     >
-                        {item.name}
+                        <div className={styles.cardTop}>
+                            <span className={styles.cardIcon}>{item.icon}</span>
+                            <span className={styles.cardName}>{item.name}</span>
+                        </div>
                     </div>
                 ))}
             </div>

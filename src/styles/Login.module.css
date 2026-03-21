@@ -1,26 +1,59 @@
-/* styles/Login.module.css */
+:root {
+  --finance-blue-900: #0f2748;
+  --finance-blue-800: #15365f;
+  --finance-blue-600: #1d4f86;
+  --finance-bg: #eef3f8;
+  --finance-surface: #ffffff;
+  --finance-border: #d7e0ea;
+  --finance-text: #1b2a3a;
+  --finance-muted: #5d7288;
+}
+
 .container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
   min-height: 100vh;
-  background-color: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background:
+    radial-gradient(circle at 10% 20%, rgba(29, 79, 134, 0.16), transparent 45%),
+    radial-gradient(circle at 90% 85%, rgba(33, 165, 138, 0.2), transparent 35%),
+    linear-gradient(150deg, #f7fbff 0%, var(--finance-bg) 55%, #e4edf6 100%);
+}
+
+.shell {
+  width: 100%;
+  max-width: 420px;
 }
 
 .loginBox {
-  background: white;
-  padding: 32px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  width: 100%;
-  max-width: 400px;
+  background: var(--finance-surface);
+  border: 1px solid var(--finance-border);
+  border-radius: 18px;
+  box-shadow: 0 18px 46px rgba(18, 52, 87, 0.12);
+}
+
+.loginBox {
+  padding: 32px 28px;
+}
+
+.loginBox form {
+  max-width: 320px;
+  margin: 0 auto;
 }
 
 .title {
+  margin: 0;
+  font-size: 28px;
   text-align: center;
-  margin-bottom: 24px;
-  font-size: 24px;
-  font-weight: bold;
+  color: var(--finance-blue-900);
+}
+
+.subTitle {
+  margin: 8px 0 20px;
+  text-align: center;
+  color: var(--finance-muted);
+  font-size: 14px;
 }
 
 .inputGroup {
@@ -29,58 +62,90 @@
 
 .label {
   display: block;
-  margin-bottom: 4px;
-  color: #374151;
+  margin-bottom: 8px;
+  color: #344a61;
+  font-weight: 600;
+  font-size: 14px;
 }
 
 .input {
   width: 100%;
-  padding: 8px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid #cbd9e8;
+  background-color: #fbfdff;
+  color: var(--finance-text);
+  font-size: 14px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--finance-blue-600);
+  box-shadow: 0 0 0 4px rgba(29, 79, 134, 0.16);
 }
 
 .button {
+  margin-top: 6px;
   width: 100%;
-  padding: 10px;
-  background-color: #3b82f6;
-  color: white;
+  height: 40px;
   border: none;
-  border-radius: 4px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--finance-blue-600), var(--finance-blue-800));
+  color: #fff;
+  font-weight: 700;
   cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
-.button:hover {
-  background-color: #2563eb;
+.button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(21, 54, 95, 0.3);
 }
 
-.textCenter {
-  text-align: center;
-  margin-top: 16px;
-  color: #6b7280;
-}
-
-.link {
-  color: #3b82f6;
-  text-decoration: none;
-}
-
-.link:hover {
-  text-decoration: underline;
+.button:disabled {
+  opacity: 0.8;
+  cursor: not-allowed;
 }
 
 .spinner {
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #3498db;
+  border: 3px solid rgba(255, 255, 255, 0.35);
+  border-top: 3px solid #ffffff;
   border-radius: 50%;
-  width: 18px;
-  height: 18px;
-  animation: spin 1s linear infinite;
+  width: 16px;
+  height: 16px;
+  animation: spin 0.9s linear infinite;
   display: inline-block;
   margin-right: 8px;
+  vertical-align: middle;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 560px) {
+  .container {
+    padding: 16px;
+  }
+
+  .loginBox {
+    border-radius: 14px;
+    padding: 20px 16px;
+  }
+
+  .loginBox form {
+    max-width: 100%;
+  }
+
+  .title {
+    font-size: 24px;
+  }
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import styles from "../styles/Login.module.css";
 import callApi from "../lib/axios";
 import { useRouter } from "next/navigation";
+import type { FormEvent } from "react";
 
 export default function Home() {
   const [username, setUsername] = useState("");
@@ -11,7 +12,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleLogin = async (e: any) => {
+  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     try {
@@ -21,9 +22,10 @@ export default function Home() {
       localStorage.setItem("access_token", accessToken);
 
       router.push("/menu");
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
       const message =
-        err?.response?.data?.message || "Có lỗi xảy ra";
+        error?.response?.data?.message || "Có lỗi xảy ra";
 
       alert(message);
     } finally {
@@ -34,40 +36,46 @@ export default function Home() {
 
   return (
     <div className={styles.container}>
-      <div className={styles.loginBox}>
-        <h2 className={styles.title}>Đăng nhập</h2>
-        <form onSubmit={handleLogin}>
-          <div className={styles.inputGroup}>
-            <label className={styles.label}>Tài khoản</label>
-            <input
-              type="account"
-              className={styles.input}
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-            />
-          </div>
+      <div className={styles.shell}>
+        <div className={styles.loginBox}>
+          <h2 className={styles.title}>Đăng nhập hệ thống</h2>
+          <p className={styles.subTitle}>Sử dụng tài khoản nội bộ để tiếp tục</p>
 
-          <div className={styles.inputGroup}>
-            <label className={styles.label}>Mật khẩu</label>
-            <input
-              type="password"
-              className={styles.input}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
+          <form onSubmit={handleLogin}>
+            <div className={styles.inputGroup}>
+              <label className={styles.label}>Tài khoản</label>
+              <input
+                type="text"
+                className={styles.input}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Nhập tài khoản"
+                required
+              />
+            </div>
 
-          <button
-            type="submit"
-            className={styles.button}
-            disabled={loading}
-          >
-            {loading && <span className={styles.spinner}></span>}
-            {loading ? "Đang đăng nhập..." : "Đăng nhập"}
-          </button>
-        </form>
+            <div className={styles.inputGroup}>
+              <label className={styles.label}>Mật khẩu</label>
+              <input
+                type="password"
+                className={styles.input}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Nhập mật khẩu"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              className={styles.button}
+              disabled={loading}
+            >
+              {loading && <span className={styles.spinner}></span>}
+              {loading ? "Đang đăng nhập..." : "Đăng nhập"}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );
