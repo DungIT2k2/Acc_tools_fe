@@ -16,7 +16,7 @@ export default function MenuPage() {
 
     const modules = [
         { name: "So khớp với file thuế", path: "/module" },
-        { name: "Lấy file thuế", path: "/module2" },
+        { name: "Hoá đơn điện tử", path: "/invoice" },
         { name: "Chức năng 3", path: "/module-3" },
         { name: "Chức năng 4", path: "/module-4" },
     ];

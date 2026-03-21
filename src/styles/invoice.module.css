@@ -1,0 +1,478 @@
+.page {
+  min-height: 100vh;
+  background: #f4f6fb;
+  padding: 24px;
+}
+
+.loginWrapper {
+  min-height: calc(100vh - 48px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loginCard {
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e3e8f2;
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.08);
+  padding: 24px;
+}
+
+.loginTitle {
+  margin: 0 0 20px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #172554;
+  text-align: center;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.field label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.field input {
+  height: 40px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 12px;
+  outline: none;
+}
+
+.selectField {
+  height: 40px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 12px;
+  outline: none;
+  background: #ffffff;
+}
+
+.field input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
+.captchaBox {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 8px;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+  cursor: pointer;
+  background: #f8fafc;
+}
+
+.loginButton {
+  width: 100%;
+  margin-top: 8px;
+  height: 42px;
+  border: none;
+  border-radius: 8px;
+  background: #1d4ed8;
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.secondaryButton {
+  width: 100%;
+  margin-top: 10px;
+  height: 40px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #334155;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dashboard {
+  position: relative;
+  min-height: calc(100vh - 48px);
+}
+
+.leftPanel {
+  position: fixed;
+  top: 24px;
+  left: 24px;
+  bottom: 24px;
+  width: 280px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e3e8f2;
+  padding: 18px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+  z-index: 20;
+  overflow-y: auto;
+  transform: translateX(calc(-100% - 24px));
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.22s ease, opacity 0.22s ease;
+}
+
+.leftPanelOpen {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.userInfo {
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 14px;
+  margin-bottom: 16px;
+}
+
+.userInfo p {
+  margin: 6px 0;
+  color: #1e293b;
+  font-size: 14px;
+}
+
+.menuList {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.menuButton {
+  height: 40px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #0f172a;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.menuButtonActive {
+  background: #dbeafe;
+  border-color: #60a5fa;
+  color: #1e3a8a;
+}
+
+.logoutButton {
+  width: 100%;
+  height: 40px;
+  border: none;
+  border-radius: 8px;
+  background: #dc2626;
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.logoutButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.rightPanel {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e3e8f2;
+  padding: 20px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+  min-width: 0;
+}
+
+.rightPanel h2 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  color: #1e3a8a;
+}
+
+.contentToolbar {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 14px;
+}
+
+.menuToggleButton {
+  height: 38px;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  padding: 0 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sidebarBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.18);
+  border: none;
+  z-index: 10;
+}
+
+.previewBox {
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #f8fbff 0%, #eef6ff 100%);
+  padding: 18px;
+  min-height: 180px;
+  color: #1e293b;
+  overflow: hidden;
+}
+
+.featureContent {
+  display: grid;
+  gap: 16px;
+}
+
+.filterPanel {
+  background: #ffffff;
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.filterGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.filterActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.exportButton {
+  margin-top: 8px;
+  height: 42px;
+  border: 1px solid #1d4ed8;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1d4ed8;
+  font-weight: 600;
+  padding: 0 14px;
+  cursor: pointer;
+}
+
+.helperText {
+  font-size: 13px;
+  color: #475569;
+}
+
+.errorMessage {
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.tableSection {
+  background: #ffffff;
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.sectionHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.collapseButton {
+  width: 26px;
+  height: 26px;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.collapseButton span {
+  display: inline-block;
+  transform: rotate(90deg);
+  transition: transform 0.2s ease;
+  font-weight: 700;
+}
+
+.collapseButtonCollapsed span {
+  transform: rotate(0deg);
+}
+
+.sectionHeader h3 {
+  margin: 0;
+  color: #1e3a8a;
+}
+
+.sectionHeader span {
+  color: #475569;
+  font-size: 13px;
+}
+
+.tableWrapper {
+  overflow-x: auto;
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.dataTable {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1120px;
+  background: #ffffff;
+}
+
+.tableHeadCell {
+  position: sticky;
+  top: 0;
+  background: #dbeafe;
+  color: #1e3a8a;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  padding: 10px;
+  border: 1px solid #bfdbfe;
+  white-space: normal;
+  z-index: 1;
+}
+
+.headerLabel {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.2;
+}
+
+.tableCell {
+  padding: 11px 10px;
+  border: 1px solid #dbeafe;
+  font-size: 13px;
+  vertical-align: middle;
+  background: #ffffff;
+  line-height: 1.45;
+  min-width: 92px;
+  word-break: break-word;
+  text-align: center;
+}
+
+.dataTable tbody tr:nth-child(even) .tableCell {
+  background: #f8fbff;
+}
+
+.dataTable tbody tr:hover .tableCell {
+  background: #eef6ff;
+}
+
+.dataTable th:nth-child(1),
+.dataTable td:nth-child(1) {
+  width: 44px;
+  min-width: 44px;
+  text-align: center;
+}
+
+.dataTable th:nth-child(2),
+.dataTable td:nth-child(2) {
+  width: 64px;
+  min-width: 64px;
+  text-align: center;
+}
+
+.dataTable th:nth-child(3),
+.dataTable td:nth-child(3) {
+  width: 88px;
+  min-width: 88px;
+  text-align: center;
+}
+
+.dataTable th:nth-child(4),
+.dataTable td:nth-child(4) {
+  width: 70px;
+  min-width: 70px;
+  text-align: center;
+}
+
+.dataTable td:nth-child(8),
+.dataTable td:nth-child(9),
+.dataTable td:nth-child(10),
+.dataTable td:nth-child(11),
+.dataTable td:nth-child(12) {
+  text-align: right;
+}
+
+.dataTable td:nth-child(7) {
+  text-align: left;
+}
+
+.emptyState {
+  border: 1px dashed #bfdbfe;
+  border-radius: 8px;
+  padding: 18px;
+  text-align: center;
+  color: #64748b;
+  background: #f8fbff;
+}
+
+@media (max-width: 900px) {
+  .leftPanel {
+    top: 12px;
+    left: 12px;
+    bottom: 12px;
+    width: min(320px, calc(100vw - 24px));
+    transform: translateX(calc(-100% - 12px));
+  }
+
+  .filterGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .filterActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .exportButton {
+    width: 100%;
+  }
+
+  .page {
+    padding: 12px;
+  }
+
+  .rightPanel {
+    padding: 14px;
+  }
+
+  .previewBox {
+    padding: 14px;
+  }
+}

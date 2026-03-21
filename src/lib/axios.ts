@@ -1,9 +1,17 @@
 import axios from "axios";
 
 // Tạo instance Axios
+// const callApi = axios.create({
+//   baseURL: "https://acc-tools-be.onrender.com",
+//   timeout: 90000,
+//   headers: {
+//     "Content-Type": "application/json",
+//   },
+// });
+
 const callApi = axios.create({
-  baseURL: "https://acc-tools-be.onrender.com",
-  timeout: 60000,
+  baseURL: "http://localhost:5000",
+  timeout: 90000,
   headers: {
     "Content-Type": "application/json",
   },
@@ -29,7 +37,7 @@ callApi.interceptors.response.use(
     // Handle error toàn cục, ví dụ alert
     if (error.response?.status === 401) {
       localStorage.removeItem("access_token");
-      window.location.href = "/login";
+      window.location.href = "/";
     }
     console.error("API Error:", error.response?.data || error.message);
     return Promise.reject(error);
