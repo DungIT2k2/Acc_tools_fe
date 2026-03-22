@@ -101,6 +101,92 @@
   cursor: pointer;
 }
 
+.quickLoginSection {
+  margin-top: 16px;
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  background: #f8fbff;
+  padding: 12px;
+}
+
+.quickLoginHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.quickLoginHeader h3 {
+  margin: 0;
+  font-size: 14px;
+  color: #1e3a8a;
+}
+
+.refreshRecentButton {
+  height: 30px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0 10px;
+  cursor: pointer;
+}
+
+.refreshRecentButton:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
+.quickLoginHint {
+  margin: 0;
+  color: #475569;
+  font-size: 13px;
+}
+
+.quickLoginList {
+  display: grid;
+  gap: 6px;
+  max-height: 150px;
+  overflow-y: auto;
+  margin: 8px 0 10px;
+  padding-right: 2px;
+}
+
+.quickLoginOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 8px 10px;
+  color: #1e293b;
+  font-size: 13px;
+}
+
+.quickLoginOption input {
+  margin: 0;
+}
+
+.quickLoginButton {
+  width: 100%;
+  height: 38px;
+  border: 1px solid #1d4ed8;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1d4ed8;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.quickLoginButton:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .dashboard {
   position: relative;
   min-height: calc(100vh - 48px);

@@ -36,6 +36,11 @@ type PurchaseInvoiceResponse = {
     invoiceCashRegisterData: InvoiceSectionData;
 };
 
+type RecentLoggedInvoiceAccount = {
+    key: string;
+    value: string;
+};
+
 function resolveSectionTable(
     data: InvoiceSectionData | undefined,
     defaultEmptyText: string,
@@ -166,6 +171,44 @@ function getLastDateOfMonth(value: string) {
     return formatDateForInput(new Date(year, month, 0));
 }
 
+function normalizeRecentLoggedInvoiceAccounts(data: unknown): RecentLoggedInvoiceAccount[] {
+    if (!Array.isArray(data)) {
+        return [];
+    }
+
+    return data
+        .map((item) => {
+            if (typeof item === "string") {
+                const key = item.trim();
+                if (!key) {
+                    return null;
+                }
+
+                return {
+                    key,
+                    value: "",
+                };
+            }
+
+            if (typeof item !== "object" || item === null) {
+                return null;
+            }
+
+            const key = String((item as { key?: unknown }).key ?? "").trim();
+            const value = String((item as { value?: unknown }).value ?? "").trim();
+
+            if (!key) {
+                return null;
+            }
+
+            return {
+                key,
+                value,
+            };
+        })
+        .filter((item): item is RecentLoggedInvoiceAccount => item !== null);
+}
+
 export default function InvoicePage() {
     const initialDates = getInitialDateRange();
     const [username, setUsername] = useState("");
@@ -173,14 +216,17 @@ export default function InvoicePage() {
     const [captcha, setCaptcha] = useState("");
     const [captchaSvg, setCaptchaSvg] = useState("");
     const [captchaKey, setCaptchaKey] = useState("");
+    const [recentAccounts, setRecentAccounts] = useState<RecentLoggedInvoiceAccount[]>([]);
+    const [selectedRecentUsername, setSelectedRecentUsername] = useState("");
     const [usernameInvoice, setUsernameInvoice] = useState("");
     const [selectedFeature, setSelectedFeature] = useState(1);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [isQuickLoggingIn, setIsQuickLoggingIn] = useState(false);
+    const [isLoadingRecentUsers, setIsLoadingRecentUsers] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [purchaseFromDate, setPurchaseFromDate] = useState(initialDates.from);
     const [purchaseToDate, setPurchaseToDate] = useState(initialDates.to);
-    const [purchaseSize, setPurchaseSize] = useState("50");
     const [purchaseData, setPurchaseData] = useState<PurchaseInvoiceResponse | null>(null);
     const [purchaseError, setPurchaseError] = useState("");
     const [isSearchingPurchase, setIsSearchingPurchase] = useState(false);
@@ -202,9 +248,51 @@ export default function InvoicePage() {
         }
     }, []);
 
+    const loadRecentLoggedInvoiceUsers = useCallback(async () => {
+        try {
+            setIsLoadingRecentUsers(true);
+            const res = await callApi.get<unknown>("/module/listLoggedInvoice");
+            const recentUsers = normalizeRecentLoggedInvoiceAccounts(res.data);
+
+            setRecentAccounts(recentUsers);
+            setSelectedRecentUsername((prev) => {
+                if (prev && recentUsers.some((item) => item.key === prev)) {
+                    return prev;
+                }
+
+                return recentUsers[0]?.key ?? "";
+            });
+        } catch (err) {
+            console.error("Load recent logged invoice users error", err);
+            setRecentAccounts([]);
+            setSelectedRecentUsername("");
+        } finally {
+            setIsLoadingRecentUsers(false);
+        }
+    }, []);
+
+    const applyInvoiceLoginToken = useCallback((token: string) => {
+        const payload = decodeTokenPayload<{ usernameInvoice?: string; fullName?: string }>(token);
+
+        if (!payload?.usernameInvoice || !payload?.fullName) {
+            alert("Token không hợp lệ cho đăng nhập hoá đơn điện tử");
+            return false;
+        }
+
+        localStorage.setItem("access_token", token);
+        setUsernameInvoice(`${payload.usernameInvoice} - ${payload.fullName}`);
+        setCaptcha("");
+        setPurchaseError("");
+        return true;
+    }, []);
+
     useEffect(() => {
         loadCaptcha();
     }, [loadCaptcha]);
+
+    useEffect(() => {
+        loadRecentLoggedInvoiceUsers();
+    }, [loadRecentLoggedInvoiceUsers]);
 
     useEffect(() => {
         const token = localStorage.getItem("access_token");
@@ -243,19 +331,11 @@ export default function InvoicePage() {
                 cvalue: captcha,
                 ckey: captchaKey,
             });
-
             const token = res.data.access_token as string;
-            const payload = decodeTokenPayload<{ usernameInvoice?: string; fullName?: string }>(token);
 
-            if (!payload?.usernameInvoice || !payload?.fullName) {
-                alert("Token không hợp lệ cho đăng nhập hoá đơn điện tử");
-                return;
+            if (applyInvoiceLoginToken(token)) {
+                loadRecentLoggedInvoiceUsers();
             }
-
-            localStorage.setItem("access_token", token);
-            setUsernameInvoice(`${payload.usernameInvoice} - ${payload.fullName}`);
-            setCaptcha("");
-            setPurchaseError("");
         } catch (err: unknown) {
             const message =
                 (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
@@ -265,6 +345,32 @@ export default function InvoicePage() {
             loadCaptcha();
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleQuickLogin = async () => {
+        if (!selectedRecentUsername) {
+            alert("Vui lòng chọn tài khoản đăng nhập gần đây");
+            return;
+        }
+
+        try {
+            setIsQuickLoggingIn(true);
+            const res = await callApi.post("/module/loginInvoice", {
+                username: selectedRecentUsername,
+            });
+
+            const token = res.data.access_token as string;
+            if (applyInvoiceLoginToken(token)) {
+                loadRecentLoggedInvoiceUsers();
+            }
+        } catch (err: unknown) {
+            const message =
+                (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+                "Đăng nhập nhanh thất bại";
+            alert(message);
+        } finally {
+            setIsQuickLoggingIn(false);
         }
     };
 
@@ -293,9 +399,11 @@ export default function InvoicePage() {
             setUsername("");
             setPassword("");
             setCaptcha("");
+            setSelectedRecentUsername("");
             setPurchaseData(null);
             setPurchaseError("");
             loadCaptcha();
+            loadRecentLoggedInvoiceUsers();
             setSelectedFeature(1);
             setIsLoggingOut(false);
         }
@@ -329,7 +437,6 @@ export default function InvoicePage() {
                 params: {
                     from: formatDateForApi(purchaseFromDate),
                     to: formatDateForApi(purchaseToDate),
-                    size: purchaseSize,
                 },
             });
 
@@ -377,7 +484,6 @@ export default function InvoicePage() {
                 params: {
                     from: formatDateForApi(purchaseFromDate),
                     to: formatDateForApi(purchaseToDate),
-                    size: purchaseSize,
                 },
                 responseType: "blob",
             });
@@ -463,18 +569,6 @@ export default function InvoicePage() {
                                 />
                             </div>
 
-                            <div className={styles.field}>
-                                <label>Size</label>
-                                <select
-                                    className={styles.selectField}
-                                    value={purchaseSize}
-                                    onChange={(e) => setPurchaseSize(e.target.value)}
-                                >
-                                    <option value="15">15</option>
-                                    <option value="30">30</option>
-                                    <option value="50">50</option>
-                                </select>
-                            </div>
                         </div>
 
                         <div className={styles.filterActions}>
@@ -631,6 +725,50 @@ export default function InvoicePage() {
                         <button className={styles.loginButton} onClick={handleLogin}>
                             {isLoading ? "Đang đăng nhập..." : "Đăng nhập"}
                         </button>
+
+                        <div className={styles.quickLoginSection}>
+                            <div className={styles.quickLoginHeader}>
+                                <h3>Tài khoản đăng nhập gần đây</h3>
+                                <button
+                                    type="button"
+                                    className={styles.refreshRecentButton}
+                                    onClick={loadRecentLoggedInvoiceUsers}
+                                    disabled={isLoadingRecentUsers}
+                                >
+                                    {isLoadingRecentUsers ? "Đang tải..." : "Tải lại"}
+                                </button>
+                            </div>
+
+                            {isLoadingRecentUsers ? (
+                                <p className={styles.quickLoginHint}>Đang tải danh sách tài khoản...</p>
+                            ) : recentAccounts.length === 0 ? (
+                                <p className={styles.quickLoginHint}>Chưa có tài khoản đăng nhập gần đây.</p>
+                            ) : (
+                                <div className={styles.quickLoginList}>
+                                    {recentAccounts.map((item) => (
+                                        <label key={item.key} className={styles.quickLoginOption}>
+                                            <input
+                                                type="radio"
+                                                name="recentInvoiceUser"
+                                                value={item.key}
+                                                checked={selectedRecentUsername === item.key}
+                                                onChange={(e) => setSelectedRecentUsername(e.target.value)}
+                                            />
+                                            <span>{item.value ? `${item.key} - ${item.value}` : item.key}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            )}
+
+                            <button
+                                className={styles.quickLoginButton}
+                                onClick={handleQuickLogin}
+                                disabled={isQuickLoggingIn || !selectedRecentUsername}
+                            >
+                                {isQuickLoggingIn ? "Đang đăng nhập nhanh..." : "Đăng nhập nhanh"}
+                            </button>
+                        </div>
+
                         <button className={styles.secondaryButton} onClick={handleBackToMenu}>
                             Về menu
                         </button>
