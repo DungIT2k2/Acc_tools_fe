@@ -47,6 +47,16 @@ type ComparePurchaseContext = {
     to: string;
 };
 
+type CompareErrorItem = {
+    row: number;
+    description: string;
+};
+
+type CompareResultData = {
+    myErrorArr: CompareErrorItem[];
+    taxErrorArr: CompareErrorItem[];
+};
+
 const PURCHASE_INVOICE_SECTION_ERROR_TEXT = "Có lỗi xảy ra khi lấy hoá đơn";
 
 function isInvoiceSectionError(item: unknown): item is InvoiceSectionError {
@@ -344,6 +354,7 @@ export default function InvoicePage() {
     const [isExportingPurchase, setIsExportingPurchase] = useState(false);
     const [isComparingPurchase, setIsComparingPurchase] = useState(false);
     const [comparePurchaseContext, setComparePurchaseContext] = useState<ComparePurchaseContext | null>(null);
+    const [compareResultData, setCompareResultData] = useState<CompareResultData | null>(null);
     const [collapsedTables, setCollapsedTables] = useState({
         issued: false,
         noCode: false,
@@ -668,6 +679,10 @@ export default function InvoicePage() {
         setComparePurchaseContext(null);
     };
 
+    const handleCloseCompareResult = () => {
+        setCompareResultData(null);
+    };
+
     const handleConfirmComparePurchase = async () => {
         if (!comparePurchaseContext) {
             return;
@@ -688,7 +703,7 @@ export default function InvoicePage() {
                 },
             });
 
-            setPurchaseData(normalizePurchaseInvoiceResponse(res.data));
+            setCompareResultData(res.data as CompareResultData);
         } catch (err: unknown) {
             const message =
                 (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
@@ -776,7 +791,7 @@ export default function InvoicePage() {
                                 onChange={handleComparePurchaseFileChange}
                                 className={styles.hiddenFileInput}
                             />
-                            <span className={styles.helperText}>Tra cứu tối đa 12 tháng. Dữ liệu gửi đi sẽ tự tách theo đầu tháng và cuối tháng.</span>
+                            <span className={styles.helperText}>Tra cứu tối đa 12 tháng.</span>
                         </div>
                     </div>
 
@@ -1040,6 +1055,59 @@ export default function InvoicePage() {
                             >
                                 {isComparingPurchase ? "Đang đối xoát..." : "Xác nhận"}
                             </button>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
+
+            {compareResultData ? (
+                <div className={styles.compareResultOverlay}>
+                    <div className={styles.compareResultModal}>
+                        <div className={styles.compareResultHeader}>
+                            <h3>Kết quả đối xoát dữ liệu</h3>
+                            <button
+                                type="button"
+                                className={styles.compareResultCloseButton}
+                                onClick={handleCloseCompareResult}
+                            >
+                                Đóng
+                            </button>
+                        </div>
+                        <div className={styles.compareResultBody}>
+                            <div className={styles.compareResultColumn}>
+                                <div className={styles.compareResultColumnTitle}>
+                                    Kết quả từ file ({compareResultData.myErrorArr.length} mục)
+                                </div>
+                                <div className={styles.compareResultList}>
+                                    {compareResultData.myErrorArr.length === 0 ? (
+                                        <div className={styles.compareResultEmpty}>Không có lỗi</div>
+                                    ) : (
+                                        compareResultData.myErrorArr.map((item, idx) => (
+                                            <div key={idx} className={styles.compareResultItem}>
+                                                <span className={styles.compareResultRow}>Dòng {item.row}</span>
+                                                <span className={styles.compareResultDesc}>{item.description}</span>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                            <div className={styles.compareResultColumn}>
+                                <div className={styles.compareResultColumnTitle}>
+                                    Kết quả đối chiếu thuế ({compareResultData.taxErrorArr.length} mục)
+                                </div>
+                                <div className={styles.compareResultList}>
+                                    {compareResultData.taxErrorArr.length === 0 ? (
+                                        <div className={styles.compareResultEmpty}>Không có lỗi</div>
+                                    ) : (
+                                        compareResultData.taxErrorArr.map((item, idx) => (
+                                            <div key={idx} className={styles.compareResultItem}>
+                                                <span className={styles.compareResultRow}>Dòng {item.row}</span>
+                                                <span className={styles.compareResultDesc}>{item.description}</span>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
