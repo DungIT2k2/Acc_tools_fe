@@ -51,6 +51,7 @@ type CompareErrorItem = {
     row: number | string;
     description: string;
     shd?: string | number | null;
+    serihd?: string | number | null;
     tdlap?: string | number | null;
 };
 
@@ -78,7 +79,7 @@ function formatCompareItemField(value: string | number | null | undefined): stri
 }
 
 function buildCompareRowMeta(item: CompareErrorItem): string {
-    return `Dòng ${item.row} - SHD: ${formatCompareItemField(item.shd)} - Ngày lập: ${formatCompareItemField(item.tdlap)}`;
+    return `Dòng ${item.row} - Số hoá đơn: ${formatCompareItemField(item.shd)} - Ký hiệu hoá đơn: ${formatCompareItemField(item.serihd)} - Ngày lập: ${formatCompareItemField(item.tdlap)}`;
 }
 
 function normalizeInvoiceSectionData(data: unknown): InvoiceSectionData {
