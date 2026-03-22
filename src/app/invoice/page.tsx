@@ -41,24 +41,86 @@ type RecentLoggedInvoiceAccount = {
     value: string;
 };
 
+const PURCHASE_INVOICE_SECTION_ERROR_TEXT = "Có lỗi xảy ra khi lấy hoá đơn";
+
+function isInvoiceSectionError(item: unknown): item is InvoiceSectionError {
+    return typeof item === "object" && item !== null && "error" in item && typeof (item as { error?: unknown }).error === "string";
+}
+
+function createInvoiceSectionError(): InvoiceSectionError[] {
+    return [{ error: PURCHASE_INVOICE_SECTION_ERROR_TEXT }];
+}
+
+function normalizeInvoiceSectionData(data: unknown): InvoiceSectionData {
+    if (Array.isArray(data)) {
+        if (data.some((item) => isInvoiceSectionError(item))) {
+            return createInvoiceSectionError();
+        }
+
+        return data as InvoiceRow[];
+    }
+
+    if (isInvoiceSectionError(data)) {
+        return createInvoiceSectionError();
+    }
+
+    return [];
+}
+
+function normalizePurchaseInvoiceResponse(data: unknown): PurchaseInvoiceResponse {
+    if (Array.isArray(data) && data.some((item) => isInvoiceSectionError(item))) {
+        const errorSection = createInvoiceSectionError();
+
+        return {
+            invoiceIssuedData: errorSection,
+            invoiceNoCodeData: errorSection,
+            invoiceCashRegisterData: errorSection,
+        };
+    }
+
+    if (typeof data !== "object" || data === null) {
+        return {
+            invoiceIssuedData: [],
+            invoiceNoCodeData: [],
+            invoiceCashRegisterData: [],
+        };
+    }
+
+    const response = data as {
+        invoiceIssuedData?: unknown;
+        invoiceNoCodeData?: unknown;
+        invoiceCashRegisterData?: unknown;
+    };
+
+    return {
+        invoiceIssuedData: normalizeInvoiceSectionData(response.invoiceIssuedData),
+        invoiceNoCodeData: normalizeInvoiceSectionData(response.invoiceNoCodeData),
+        invoiceCashRegisterData: normalizeInvoiceSectionData(response.invoiceCashRegisterData),
+    };
+}
+
 function resolveSectionTable(
-    data: InvoiceSectionData | undefined,
+    data: InvoiceSectionData | InvoiceSectionError | undefined,
     defaultEmptyText: string,
 ) {
+    if (isInvoiceSectionError(data)) {
+        return {
+            rows: [],
+            emptyText: PURCHASE_INVOICE_SECTION_ERROR_TEXT,
+            count: 0,
+        };
+    }
+
     if (Array.isArray(data)) {
         if (
             data.length > 0 &&
             data.every(
-                (item) =>
-                    typeof item === "object" &&
-                    item !== null &&
-                    "error" in item &&
-                    typeof (item as { error?: unknown }).error === "string",
+                (item) => isInvoiceSectionError(item),
             )
         ) {
             return {
                 rows: [],
-                emptyText: (data[0] as InvoiceSectionError).error,
+                emptyText: PURCHASE_INVOICE_SECTION_ERROR_TEXT,
                 count: 0,
             };
         }
@@ -142,9 +204,16 @@ const PURCHASE_INVOICE_COLUMNS: DynamicTableColumn<InvoiceRow>[] = [
     { header: formatHeaderLabel("Trạng thái hoá đơn"), field: "tthai" },
 ];
 
-function formatDateForApi(value: string) {
-    const [year, month, day] = value.split("-");
+function formatDateForApi(date: Date) {
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
     return `${day}/${month}/${year}`;
+}
+
+function parseInputDate(value: string) {
+    const [year, month, day] = value.split("-").map(Number);
+    return new Date(year, month - 1, day);
 }
 
 function formatDateForInput(date: Date) {
@@ -166,9 +235,44 @@ function getInitialDateRange() {
     };
 }
 
-function getLastDateOfMonth(value: string) {
-    const [year, month] = value.split("-").map(Number);
-    return formatDateForInput(new Date(year, month, 0));
+function getStartOfMonth(date: Date) {
+    return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function getEndOfMonth(date: Date) {
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0);
+}
+
+function toStartOfMonthInputValue(value: string) {
+    return formatDateForInput(getStartOfMonth(parseInputDate(value)));
+}
+
+function toEndOfMonthInputValue(value: string) {
+    return formatDateForInput(getEndOfMonth(parseInputDate(value)));
+}
+
+function getInclusiveMonthCount(startDate: Date, endDate: Date) {
+    return (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth()) + 1;
+}
+
+function buildPurchaseInvoiceMonthParams(fromValue: string, toValue: string) {
+    const startDate = getStartOfMonth(parseInputDate(fromValue));
+    const endDate = getStartOfMonth(parseInputDate(toValue));
+    const monthCount = getInclusiveMonthCount(startDate, endDate);
+
+    const fromDates: string[] = [];
+    const toDates: string[] = [];
+
+    for (let index = monthCount - 1; index >= 0; index -= 1) {
+        const currentMonth = new Date(startDate.getFullYear(), startDate.getMonth() + index, 1);
+        fromDates.push(formatDateForApi(getStartOfMonth(currentMonth)));
+        toDates.push(formatDateForApi(getEndOfMonth(currentMonth)));
+    }
+
+    return {
+        from: fromDates.join(","),
+        to: toDates.join(","),
+    };
 }
 
 function normalizeRecentLoggedInvoiceAccounts(data: unknown): RecentLoggedInvoiceAccount[] {
@@ -409,23 +513,33 @@ export default function InvoicePage() {
         }
     };
 
-    const handleSearchPurchaseInvoices = async () => {
+    const getValidatedPurchaseInvoiceParams = () => {
         if (!purchaseFromDate || !purchaseToDate) {
             setPurchaseError("Vui lòng chọn đầy đủ khoảng thời gian.");
-            return;
+            return null;
         }
 
-        const fromDate = new Date(purchaseFromDate);
-        const toDate = new Date(purchaseToDate);
+        const fromDate = parseInputDate(purchaseFromDate);
+        const toDate = parseInputDate(purchaseToDate);
 
         if (fromDate > toDate) {
             setPurchaseError("Ngày bắt đầu không được lớn hơn ngày kết thúc.");
-            return;
+            return null;
         }
 
-        const diffInDays = Math.floor((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24));
-        if (diffInDays > 31) {
-            setPurchaseError("Khoảng thời gian tối đa là 1 tháng.");
+        const monthCount = getInclusiveMonthCount(getStartOfMonth(fromDate), getStartOfMonth(toDate));
+        if (monthCount > 12) {
+            setPurchaseError("Khoảng thời gian tối đa là 12 tháng.");
+            return null;
+        }
+
+        setPurchaseError("");
+        return buildPurchaseInvoiceMonthParams(purchaseFromDate, purchaseToDate);
+    };
+
+    const handleSearchPurchaseInvoices = async () => {
+        const params = getValidatedPurchaseInvoiceParams();
+        if (!params) {
             return;
         }
 
@@ -433,18 +547,14 @@ export default function InvoicePage() {
             setIsSearchingPurchase(true);
             setPurchaseError("");
 
-            const res = await callApi.get<PurchaseInvoiceResponse>("/module/getPurchaseInvoice", {
+            const res = await callApi.get<unknown>("/module/getPurchaseInvoice", {
                 params: {
-                    from: formatDateForApi(purchaseFromDate),
-                    to: formatDateForApi(purchaseToDate),
+                    from: params.from,
+                    to: params.to,
                 },
             });
 
-            setPurchaseData({
-                invoiceIssuedData: res.data.invoiceIssuedData ?? [],
-                invoiceNoCodeData: res.data.invoiceNoCodeData ?? [],
-                invoiceCashRegisterData: res.data.invoiceCashRegisterData ?? [],
-            });
+            setPurchaseData(normalizePurchaseInvoiceResponse(res.data));
         } catch (err: unknown) {
             const message =
                 (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
@@ -457,22 +567,8 @@ export default function InvoicePage() {
     };
 
     const handleExportPurchaseInvoices = async () => {
-        if (!purchaseFromDate || !purchaseToDate) {
-            setPurchaseError("Vui lòng chọn đầy đủ khoảng thời gian.");
-            return;
-        }
-
-        const fromDate = new Date(purchaseFromDate);
-        const toDate = new Date(purchaseToDate);
-
-        if (fromDate > toDate) {
-            setPurchaseError("Ngày bắt đầu không được lớn hơn ngày kết thúc.");
-            return;
-        }
-
-        const diffInDays = Math.floor((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24));
-        if (diffInDays > 31) {
-            setPurchaseError("Khoảng thời gian tối đa là 1 tháng.");
+        const params = getValidatedPurchaseInvoiceParams();
+        if (!params) {
             return;
         }
 
@@ -482,8 +578,8 @@ export default function InvoicePage() {
 
             const res = await callApi.get<Blob>("/module/exportPurchaseInvoice", {
                 params: {
-                    from: formatDateForApi(purchaseFromDate),
-                    to: formatDateForApi(purchaseToDate),
+                    from: params.from,
+                    to: params.to,
                 },
                 responseType: "blob",
             });
@@ -517,12 +613,11 @@ export default function InvoicePage() {
     const isLoggedIn = Boolean(usernameInvoice);
 
     const handlePurchaseFromDateChange = (value: string) => {
-        setPurchaseFromDate(value);
+        setPurchaseFromDate(toStartOfMonthInputValue(value));
+    };
 
-        const selectedDate = new Date(value);
-        if (selectedDate.getDate() === 1) {
-            setPurchaseToDate(getLastDateOfMonth(value));
-        }
+    const handlePurchaseToDateChange = (value: string) => {
+        setPurchaseToDate(toEndOfMonthInputValue(value));
     };
 
     const toggleTableSection = (section: "issued" | "noCode" | "cashRegister") => {
@@ -565,7 +660,7 @@ export default function InvoicePage() {
                                 <input
                                     type="date"
                                     value={purchaseToDate}
-                                    onChange={(e) => setPurchaseToDate(e.target.value)}
+                                    onChange={(e) => handlePurchaseToDateChange(e.target.value)}
                                 />
                             </div>
 
@@ -578,7 +673,7 @@ export default function InvoicePage() {
                             <button className={styles.exportButton} onClick={handleExportPurchaseInvoices}>
                                 {isExportingPurchase ? "Đang xuất file..." : "Xuất Excel"}
                             </button>
-                            <span className={styles.helperText}>Khoảng thời gian tra cứu tối đa 1 tháng.</span>
+                            <span className={styles.helperText}>Tra cứu tối đa 12 tháng. Dữ liệu gửi đi sẽ tự tách theo đầu tháng và cuối tháng.</span>
                         </div>
                     </div>
 
