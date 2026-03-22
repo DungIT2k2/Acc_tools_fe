@@ -354,6 +354,93 @@
   cursor: pointer;
 }
 
+.compareButton {
+  margin-top: 8px;
+  height: 42px;
+  border: 1px solid #0f766e;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f766e;
+  font-weight: 600;
+  padding: 0 14px;
+  cursor: pointer;
+}
+
+.compareButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.hiddenFileInput {
+  display: none;
+}
+
+.compareModalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.38);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 16px;
+}
+
+.compareModal {
+  width: min(560px, 100%);
+  background: #ffffff;
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
+  box-shadow: 0 24px 56px rgba(15, 23, 42, 0.22);
+  padding: 20px;
+}
+
+.compareModal h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 20px;
+}
+
+.compareModal p {
+  margin: 12px 0 0;
+  color: #334155;
+  line-height: 1.55;
+}
+
+.compareModalActions {
+  margin-top: 18px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.compareModalCancelButton,
+.compareModalConfirmButton {
+  height: 38px;
+  border-radius: 10px;
+  padding: 0 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.compareModalCancelButton {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+}
+
+.compareModalConfirmButton {
+  border: 1px solid #0f766e;
+  background: #0f766e;
+  color: #ffffff;
+}
+
+.compareModalCancelButton:disabled,
+.compareModalConfirmButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 .helperText {
   font-size: 13px;
   color: #475569;
@@ -550,8 +637,21 @@
     width: 100%;
   }
 
+  .compareButton {
+    width: 100%;
+  }
+
   .page {
     padding: 12px;
+  }
+
+  .compareModalActions {
+    flex-direction: column;
+  }
+
+  .compareModalCancelButton,
+  .compareModalConfirmButton {
+    width: 100%;
   }
 
   .rightPanel {

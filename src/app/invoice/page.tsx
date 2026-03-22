@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { type ChangeEvent, type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import styles from "../../styles/invoice.module.css";
 import apiTax from "@/src/lib/axiosCapcha";
 import callApi from "@/src/lib/axios";
@@ -39,6 +39,12 @@ type PurchaseInvoiceResponse = {
 type RecentLoggedInvoiceAccount = {
     key: string;
     value: string;
+};
+
+type ComparePurchaseContext = {
+    file: File;
+    from: string;
+    to: string;
 };
 
 const PURCHASE_INVOICE_SECTION_ERROR_TEXT = "Có lỗi xảy ra khi lấy hoá đơn";
@@ -323,6 +329,7 @@ export default function InvoicePage() {
     const [recentAccounts, setRecentAccounts] = useState<RecentLoggedInvoiceAccount[]>([]);
     const [selectedRecentUsername, setSelectedRecentUsername] = useState("");
     const [usernameInvoice, setUsernameInvoice] = useState("");
+    const [isAuthResolved, setIsAuthResolved] = useState(false);
     const [selectedFeature, setSelectedFeature] = useState(1);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -335,11 +342,14 @@ export default function InvoicePage() {
     const [purchaseError, setPurchaseError] = useState("");
     const [isSearchingPurchase, setIsSearchingPurchase] = useState(false);
     const [isExportingPurchase, setIsExportingPurchase] = useState(false);
+    const [isComparingPurchase, setIsComparingPurchase] = useState(false);
+    const [comparePurchaseContext, setComparePurchaseContext] = useState<ComparePurchaseContext | null>(null);
     const [collapsedTables, setCollapsedTables] = useState({
         issued: false,
         noCode: false,
         cashRegister: false,
     });
+    const compareFileInputRef = useRef<HTMLInputElement | null>(null);
     const router = useRouter();
 
     const loadCaptcha = useCallback(async () => {
@@ -391,35 +401,51 @@ export default function InvoicePage() {
     }, []);
 
     useEffect(() => {
-        loadCaptcha();
-    }, [loadCaptcha]);
-
-    useEffect(() => {
-        loadRecentLoggedInvoiceUsers();
-    }, [loadRecentLoggedInvoiceUsers]);
-
-    useEffect(() => {
         const token = localStorage.getItem("access_token");
-        if (!token) {
-            return;
+
+        if (token) {
+            const payload = decodeTokenPayload<{ usernameInvoice?: string; fullName?: string }>(token);
+            if (payload?.usernameInvoice && payload?.fullName) {
+                setUsernameInvoice(`${payload.usernameInvoice} - ${payload.fullName}`);
+            }
         }
 
-        const payload = decodeTokenPayload<{ usernameInvoice?: string; fullName?: string }>(token);
-        if (payload?.usernameInvoice && payload?.fullName) {
-            setUsernameInvoice(`${payload.usernameInvoice} - ${payload.fullName}`);
-            return;
-        }
-
+        setIsAuthResolved(true);
     }, []);
 
     useEffect(() => {
+        if (!isAuthResolved || usernameInvoice) {
+            return;
+        }
+
+        loadCaptcha();
+    }, [isAuthResolved, loadCaptcha, usernameInvoice]);
+
+    useEffect(() => {
+        if (!isAuthResolved || usernameInvoice) {
+            return;
+        }
+
+        loadRecentLoggedInvoiceUsers();
+    }, [isAuthResolved, loadRecentLoggedInvoiceUsers, usernameInvoice]);
+
+    useEffect(() => {
+        if (!isAuthResolved || usernameInvoice) {
+            return;
+        }
+
         const intervalId = setInterval(() => {
             loadCaptcha();
             setCaptcha("");
         }, 120000);
 
         return () => clearInterval(intervalId);
-    }, [loadCaptcha]);
+    }, [isAuthResolved, loadCaptcha, usernameInvoice]);
+
+    const handleLoginSubmit = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        handleLogin();
+    };
 
     const handleLogin = async () => {
         if (!username || !password || !captcha) {
@@ -610,6 +636,70 @@ export default function InvoicePage() {
         }
     };
 
+    const handleOpenCompareFilePicker = () => {
+        compareFileInputRef.current?.click();
+    };
+
+    const handleComparePurchaseFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+        const selectedFile = event.target.files?.[0];
+        event.target.value = "";
+
+        if (!selectedFile) {
+            return;
+        }
+
+        const params = getValidatedPurchaseInvoiceParams();
+        if (!params) {
+            return;
+        }
+
+        setComparePurchaseContext({
+            file: selectedFile,
+            from: params.from,
+            to: params.to,
+        });
+    };
+
+    const handleCancelComparePurchase = () => {
+        if (isComparingPurchase) {
+            return;
+        }
+
+        setComparePurchaseContext(null);
+    };
+
+    const handleConfirmComparePurchase = async () => {
+        if (!comparePurchaseContext) {
+            return;
+        }
+
+        try {
+            setIsComparingPurchase(true);
+            setPurchaseError("");
+
+            const formData = new FormData();
+            formData.append("File", comparePurchaseContext.file);
+            formData.append("from", comparePurchaseContext.from);
+            formData.append("to", comparePurchaseContext.to);
+
+            const res = await callApi.post<unknown>("/module/comparePurchaseInvoice", formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+            });
+
+            setPurchaseData(normalizePurchaseInvoiceResponse(res.data));
+        } catch (err: unknown) {
+            const message =
+                (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+                "Đối xoát dữ liệu thất bại";
+            setPurchaseError(message);
+        } finally {
+            setIsComparingPurchase(false);
+            setComparePurchaseContext(null);
+        }
+    };
+
     const isLoggedIn = Boolean(usernameInvoice);
 
     const handlePurchaseFromDateChange = (value: string) => {
@@ -673,6 +763,19 @@ export default function InvoicePage() {
                             <button className={styles.exportButton} onClick={handleExportPurchaseInvoices}>
                                 {isExportingPurchase ? "Đang xuất file..." : "Xuất Excel"}
                             </button>
+                            <button
+                                className={styles.compareButton}
+                                onClick={handleOpenCompareFilePicker}
+                                disabled={isComparingPurchase}
+                            >
+                                {isComparingPurchase ? "Đang đối xoát..." : "Đối xoát dữ liệu với file"}
+                            </button>
+                            <input
+                                ref={compareFileInputRef}
+                                type="file"
+                                onChange={handleComparePurchaseFileChange}
+                                className={styles.hiddenFileInput}
+                            />
                             <span className={styles.helperText}>Tra cứu tối đa 12 tháng. Dữ liệu gửi đi sẽ tự tách theo đầu tháng và cuối tháng.</span>
                         </div>
                     </div>
@@ -784,42 +887,44 @@ export default function InvoicePage() {
                     <div className={styles.loginCard}>
                         <h1 className={styles.loginTitle}>Đăng nhập HĐĐT</h1>
 
-                        <div className={styles.field}>
-                            <label>Tài khoản</label>
-                            <input
-                                type="text"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
-                            />
-                        </div>
+                        <form onSubmit={handleLoginSubmit}>
+                            <div className={styles.field}>
+                                <label>Tài khoản</label>
+                                <input
+                                    type="text"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                />
+                            </div>
 
-                        <div className={styles.field}>
-                            <label>Mật khẩu</label>
-                            <input
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                            />
-                        </div>
+                            <div className={styles.field}>
+                                <label>Mật khẩu</label>
+                                <input
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                />
+                            </div>
 
-                        <div className={styles.field}>
-                            <label>Captcha</label>
-                            <div
-                                className={styles.captchaBox}
-                                onClick={loadCaptcha}
-                                dangerouslySetInnerHTML={{ __html: captchaSvg }}
-                            />
-                            <input
-                                type="text"
-                                placeholder="Nhập captcha"
-                                value={captcha}
-                                onChange={(e) => setCaptcha(e.target.value)}
-                            />
-                        </div>
+                            <div className={styles.field}>
+                                <label>Captcha</label>
+                                <div
+                                    className={styles.captchaBox}
+                                    onClick={loadCaptcha}
+                                    dangerouslySetInnerHTML={{ __html: captchaSvg }}
+                                />
+                                <input
+                                    type="text"
+                                    placeholder="Nhập captcha"
+                                    value={captcha}
+                                    onChange={(e) => setCaptcha(e.target.value)}
+                                />
+                            </div>
 
-                        <button className={styles.loginButton} onClick={handleLogin}>
-                            {isLoading ? "Đang đăng nhập..." : "Đăng nhập"}
-                        </button>
+                            <button type="submit" className={styles.loginButton}>
+                                {isLoading ? "Đang đăng nhập..." : "Đăng nhập"}
+                            </button>
+                        </form>
 
                         <div className={styles.quickLoginSection}>
                             <div className={styles.quickLoginHeader}>
@@ -856,6 +961,7 @@ export default function InvoicePage() {
                             )}
 
                             <button
+                                type="button"
                                 className={styles.quickLoginButton}
                                 onClick={handleQuickLogin}
                                 disabled={isQuickLoggingIn || !selectedRecentUsername}
@@ -909,6 +1015,35 @@ export default function InvoicePage() {
                     </section>
                 </div>
             )}
+
+            {comparePurchaseContext ? (
+                <div className={styles.compareModalOverlay}>
+                    <div className={styles.compareModal}>
+                        <h3>Xác nhận đối xoát dữ liệu</h3>
+                        <p>
+                            Bạn có muốn đối xoát file {comparePurchaseContext.file.name} đã chọn với dữ liệu đang tìm kiếm không ?
+                        </p>
+                        <div className={styles.compareModalActions}>
+                            <button
+                                type="button"
+                                className={styles.compareModalCancelButton}
+                                onClick={handleCancelComparePurchase}
+                                disabled={isComparingPurchase}
+                            >
+                                Hủy
+                            </button>
+                            <button
+                                type="button"
+                                className={styles.compareModalConfirmButton}
+                                onClick={handleConfirmComparePurchase}
+                                disabled={isComparingPurchase}
+                            >
+                                {isComparingPurchase ? "Đang đối xoát..." : "Xác nhận"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
         </div>
     );
 }
