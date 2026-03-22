@@ -781,7 +781,8 @@ export default function InvoicePage() {
                             <button
                                 className={styles.compareButton}
                                 onClick={handleOpenCompareFilePicker}
-                                disabled={isComparingPurchase}
+                                disabled={isComparingPurchase || !purchaseData}
+                                title={!purchaseData ? "Vui lòng tìm kiếm dữ liệu trước" : undefined}
                             >
                                 {isComparingPurchase ? "Đang đối xoát..." : "Đối xoát dữ liệu với file"}
                             </button>
