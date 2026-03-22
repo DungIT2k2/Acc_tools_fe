@@ -48,8 +48,10 @@ type ComparePurchaseContext = {
 };
 
 type CompareErrorItem = {
-    row: number;
+    row: number | string;
     description: string;
+    shd?: string | number | null;
+    tdlap?: string | number | null;
 };
 
 type CompareResultData = {
@@ -65,6 +67,18 @@ function isInvoiceSectionError(item: unknown): item is InvoiceSectionError {
 
 function createInvoiceSectionError(): InvoiceSectionError[] {
     return [{ error: PURCHASE_INVOICE_SECTION_ERROR_TEXT }];
+}
+
+function formatCompareItemField(value: string | number | null | undefined): string {
+    if (value === null || value === undefined || value === "") {
+        return "--";
+    }
+
+    return String(value);
+}
+
+function buildCompareRowMeta(item: CompareErrorItem): string {
+    return `Dòng ${item.row} - SHD: ${formatCompareItemField(item.shd)} - Ngày lập: ${formatCompareItemField(item.tdlap)}`;
 }
 
 function normalizeInvoiceSectionData(data: unknown): InvoiceSectionData {
@@ -349,6 +363,7 @@ export default function InvoicePage() {
     const [purchaseFromDate, setPurchaseFromDate] = useState(initialDates.from);
     const [purchaseToDate, setPurchaseToDate] = useState(initialDates.to);
     const [purchaseData, setPurchaseData] = useState<PurchaseInvoiceResponse | null>(null);
+    const [hasSearchedPurchase, setHasSearchedPurchase] = useState(false);
     const [purchaseError, setPurchaseError] = useState("");
     const [isSearchingPurchase, setIsSearchingPurchase] = useState(false);
     const [isExportingPurchase, setIsExportingPurchase] = useState(false);
@@ -542,6 +557,7 @@ export default function InvoicePage() {
             setCaptcha("");
             setSelectedRecentUsername("");
             setPurchaseData(null);
+            setHasSearchedPurchase(false);
             setPurchaseError("");
             loadCaptcha();
             loadRecentLoggedInvoiceUsers();
@@ -592,12 +608,14 @@ export default function InvoicePage() {
             });
 
             setPurchaseData(normalizePurchaseInvoiceResponse(res.data));
+            setHasSearchedPurchase(true);
         } catch (err: unknown) {
             const message =
                 (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
                 "Không lấy được dữ liệu hoá đơn mua";
             setPurchaseError(message);
             setPurchaseData(null);
+            setHasSearchedPurchase(false);
         } finally {
             setIsSearchingPurchase(false);
         }
@@ -719,10 +737,12 @@ export default function InvoicePage() {
 
     const handlePurchaseFromDateChange = (value: string) => {
         setPurchaseFromDate(toStartOfMonthInputValue(value));
+        setHasSearchedPurchase(false);
     };
 
     const handlePurchaseToDateChange = (value: string) => {
         setPurchaseToDate(toEndOfMonthInputValue(value));
+        setHasSearchedPurchase(false);
     };
 
     const toggleTableSection = (section: "issued" | "noCode" | "cashRegister") => {
@@ -775,7 +795,12 @@ export default function InvoicePage() {
                             <button className={styles.loginButton} onClick={handleSearchPurchaseInvoices}>
                                 {isSearchingPurchase ? "Đang tìm kiếm..." : "Tìm kiếm"}
                             </button>
-                            <button className={styles.exportButton} onClick={handleExportPurchaseInvoices}>
+                            <button
+                                className={styles.exportButton}
+                                onClick={handleExportPurchaseInvoices}
+                                disabled={isExportingPurchase || !purchaseData || !hasSearchedPurchase}
+                                title={!hasSearchedPurchase ? "Vui lòng bấm Tìm kiếm trước khi xuất file" : undefined}
+                            >
                                 {isExportingPurchase ? "Đang xuất file..." : "Xuất Excel"}
                             </button>
                             <button
@@ -1085,7 +1110,7 @@ export default function InvoicePage() {
                                     ) : (
                                         compareResultData.myErrorArr.map((item, idx) => (
                                             <div key={idx} className={styles.compareResultItem}>
-                                                <span className={styles.compareResultRow}>Dòng {item.row}</span>
+                                                <span className={styles.compareResultRow}>{buildCompareRowMeta(item)}</span>
                                                 <span className={styles.compareResultDesc}>{item.description}</span>
                                             </div>
                                         ))
@@ -1102,7 +1127,7 @@ export default function InvoicePage() {
                                     ) : (
                                         compareResultData.taxErrorArr.map((item, idx) => (
                                             <div key={idx} className={styles.compareResultItem}>
-                                                <span className={styles.compareResultRow}>Dòng {item.row}</span>
+                                                <span className={styles.compareResultRow}>{buildCompareRowMeta(item)}</span>
                                                 <span className={styles.compareResultDesc}>{item.description}</span>
                                             </div>
                                         ))
