@@ -428,6 +428,7 @@ export default function InvoicePage() {
         noCode: false,
         cashRegister: false,
     });
+    const [isMobileView, setIsMobileView] = useState(false);
 
     const invoiceColumns = useMemo(() => {
         return PURCHASE_INVOICE_COLUMNS.filter((column) => {
@@ -500,6 +501,23 @@ export default function InvoicePage() {
         }
 
         setIsAuthResolved(true);
+    }, []);
+
+    useEffect(() => {
+        const query = window.matchMedia("(max-width: 760px)");
+        const onChange = (e: MediaQueryListEvent) => setIsMobileView(e.matches);
+
+        setIsMobileView(query.matches);
+        if (query.addEventListener) {
+            query.addEventListener("change", onChange);
+            return () => query.removeEventListener("change", onChange);
+        }
+
+        // Fallback for older browsers
+        if (query.addListener) {
+            query.addListener(onChange);
+            return () => query.removeListener(onChange);
+        }
     }, []);
 
     useEffect(() => {
@@ -859,6 +877,15 @@ export default function InvoicePage() {
             return "issued" as const;
         };
 
+        const sectionSummaries = featureConfig.dataKeys.map((section) => {
+            const table = resolveSectionTable(invoiceData?.[section.key], "Chưa có dữ liệu hoá đơn này");
+            return {
+                title: section.title,
+                count: table.count,
+            };
+        });
+        const totalRows = sectionSummaries.reduce((sum, item) => sum + item.count, 0);
+
         return (
             <div className={styles.featureContent}>
                 <div className={styles.filterPanel}>
@@ -915,41 +942,57 @@ export default function InvoicePage() {
 
                 {purchaseError ? <div className={styles.errorMessage}>{purchaseError}</div> : null}
 
-                {featureConfig.dataKeys.map((section) => {
-                    const table = resolveSectionTable(invoiceData?.[section.key], "Chưa có dữ liệu hoá đơn này");
-                    const collapseKey = getSectionKey(section.key);
-
-                    return (
-                        <div key={section.key} className={styles.tableSection}>
-                            <div className={styles.sectionHeader}>
-                                <div className={styles.sectionHeaderLeft}>
-                                    <button
-                                        className={`${styles.collapseButton} ${collapsedTables[collapseKey] ? styles.collapseButtonCollapsed : ""}`}
-                                        onClick={() => toggleTableSection(collapseKey)}
-                                    >
-                                        <span>&gt;</span>
-                                    </button>
-                                    <h3>{section.title}</h3>
-                                </div>
-                                <span>{table.count} dòng</span>
-                            </div>
-                            {!collapsedTables[collapseKey] ? (
-                                <div className={styles.tableWrapper}>
-                                    <DynamicTable
-                                        columns={invoiceColumns}
-                                        data={table.rows}
-                                        emptyText={table.emptyText}
-                                        tableClassName={styles.dataTable}
-                                        headClassName={styles.tableHeadCell}
-                                        cellClassName={styles.tableCell}
-                                        emptyClassName={styles.emptyState}
-                                    />
-                                </div>
-                            ) : null}
+                {isMobileView && hasSearchedPurchase && invoiceData ? (
+                    <div className={styles.mobileInfoBox}>
+                        <p>Vui lòng truy cập bằng máy tính để xem toàn bộ dữ liệu hoặc xuất file.</p>
+                        <p>Nếu bạn cần thao tác đối soát/excel, bấm vào nút XUẤT FILE hoặc ĐỐI XOÁT.</p>
+                        <div>
+                            <p style={{ fontWeight: 600, marginBottom: 4 }}>Tổng dữ liệu đã tìm kiếm: {totalRows} dòng</p>
+                            <ul style={{ paddingLeft: 18, margin: 0 }}>
+                                {sectionSummaries.map((item) => (
+                                    <li key={item.title} style={{ fontSize: 13, marginBottom: 2 }}>
+                                        {item.title}: {item.count} dòng
+                                    </li>
+                                ))}
+                            </ul>
                         </div>
-                    );
-                })}
-            </div>
+                    </div>
+                ) : (
+                    featureConfig.dataKeys.map((section) => {
+                        const table = resolveSectionTable(invoiceData?.[section.key], "Chưa có dữ liệu hoá đơn này");
+                        const collapseKey = getSectionKey(section.key);
+
+                        return (
+                            <div key={section.key} className={styles.tableSection}>
+                                <div className={styles.sectionHeader}>
+                                    <div className={styles.sectionHeaderLeft}>
+                                        <button
+                                            className={`${styles.collapseButton} ${collapsedTables[collapseKey] ? styles.collapseButtonCollapsed : ""}`}
+                                            onClick={() => toggleTableSection(collapseKey)}
+                                        >
+                                            <span>&gt;</span>
+                                        </button>
+                                        <h3>{section.title}</h3>
+                                    </div>
+                                    <span>{table.count} dòng</span>
+                                </div>
+                                {!collapsedTables[collapseKey] ? (
+                                    <div className={styles.tableWrapper}>
+                                        <DynamicTable
+                                            columns={invoiceColumns}
+                                            data={table.rows}
+                                            emptyText={table.emptyText}
+                                            tableClassName={styles.dataTable}
+                                            headClassName={styles.tableHeadCell}
+                                            cellClassName={styles.tableCell}
+                                            emptyClassName={styles.emptyState}
+                                        />
+                                    </div>
+                                ) : null}
+                            </div>
+                        );
+                    })
+                )}            </div>
         );
     };
 

@@ -757,6 +757,12 @@
     transform: translateX(calc(-100% - 12px));
   }
 
+  .leftPanelOpen {
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
   .filterGrid {
     grid-template-columns: 1fr;
   }
