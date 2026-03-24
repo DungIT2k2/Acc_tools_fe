@@ -1,6 +1,6 @@
 "use client";
 
-import { type ChangeEvent, type FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { type ChangeEvent, type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styles from "../../styles/invoice.module.css";
 import apiTax from "@/src/lib/axiosCapcha";
 import callApi from "@/src/lib/axios";
@@ -16,6 +16,8 @@ type InvoiceRow = {
     tdlap: string;
     nbmst: string;
     nbten: string;
+    nmmst: string;
+    nmten: string;
     tgtcthue: number;
     tgtthue: number;
     ttcktmai: number | null;
@@ -30,10 +32,13 @@ type InvoiceSectionError = {
 
 type InvoiceSectionData = InvoiceRow[] | InvoiceSectionError[];
 
-type PurchaseInvoiceResponse = {
-    invoiceIssuedData: InvoiceSectionData;
-    invoiceNoCodeData: InvoiceSectionData;
-    invoiceCashRegisterData: InvoiceSectionData;
+type InvoiceFeatureConfig = {
+    id: number;
+    title: string;
+    apiEndpoint: string;
+    exportEndpoint: string;
+    compareEndpoint: string;
+    dataKeys: Array<{ key: string; title: string }>;
 };
 
 type RecentLoggedInvoiceAccount = {
@@ -70,6 +75,32 @@ function createInvoiceSectionError(): InvoiceSectionError[] {
     return [{ error: PURCHASE_INVOICE_SECTION_ERROR_TEXT }];
 }
 
+const INVOICE_FEATURES: InvoiceFeatureConfig[] = [
+    {
+        id: 1,
+        title: "Lấy hoá đơn mua",
+        apiEndpoint: "/invoice/getPurchaseInvoice",
+        exportEndpoint: "/invoice/exportPurchaseInvoice",
+        compareEndpoint: "/invoice/comparePurchaseInvoice",
+        dataKeys: [
+            { key: "invoiceIssuedData", title: "Đã cấp mã hoá đơn" },
+            { key: "invoiceNoCodeData", title: "Cục Thuế đã nhận không mã" },
+            { key: "invoiceCashRegisterData", title: "Cục Thuế đã nhận hoá đơn có mã khởi tạo từ máy tính tiền" },
+        ],
+    },
+    {
+        id: 2,
+        title: "Lấy hoá đơn bán",
+        apiEndpoint: "/invoice/getSoldInvoice",
+        exportEndpoint: "/invoice/exportSoldInvoice",
+        compareEndpoint: "/invoice/compareSoldInvoice",
+        dataKeys: [
+            { key: "invoiceElectronicData", title: "Hoá đơn điện tử" },
+            { key: "invoiceCashRegisterData", title: "Hoá đơn có mã khởi tạo từ máy tính tiền" },
+        ],
+    },
+];
+
 function formatCompareItemField(value: string | number | null | undefined): string {
     if (value === null || value === undefined || value === "") {
         return "--";
@@ -98,36 +129,31 @@ function normalizeInvoiceSectionData(data: unknown): InvoiceSectionData {
     return [];
 }
 
-function normalizePurchaseInvoiceResponse(data: unknown): PurchaseInvoiceResponse {
+function normalizeInvoiceResponse(data: unknown, keys: string[]): Record<string, InvoiceSectionData> {
+    const result: Record<string, InvoiceSectionData> = {};
+
     if (Array.isArray(data) && data.some((item) => isInvoiceSectionError(item))) {
         const errorSection = createInvoiceSectionError();
-
-        return {
-            invoiceIssuedData: errorSection,
-            invoiceNoCodeData: errorSection,
-            invoiceCashRegisterData: errorSection,
-        };
+        keys.forEach((key) => {
+            result[key] = errorSection;
+        });
+        return result;
     }
 
     if (typeof data !== "object" || data === null) {
-        return {
-            invoiceIssuedData: [],
-            invoiceNoCodeData: [],
-            invoiceCashRegisterData: [],
-        };
+        keys.forEach((key) => {
+            result[key] = [];
+        });
+        return result;
     }
 
-    const response = data as {
-        invoiceIssuedData?: unknown;
-        invoiceNoCodeData?: unknown;
-        invoiceCashRegisterData?: unknown;
-    };
+    const response = data as Record<string, unknown>;
 
-    return {
-        invoiceIssuedData: normalizeInvoiceSectionData(response.invoiceIssuedData),
-        invoiceNoCodeData: normalizeInvoiceSectionData(response.invoiceNoCodeData),
-        invoiceCashRegisterData: normalizeInvoiceSectionData(response.invoiceCashRegisterData),
-    };
+    keys.forEach((key) => {
+        result[key] = normalizeInvoiceSectionData(response[key]);
+    });
+
+    return result;
 }
 
 function resolveSectionTable(
@@ -170,6 +196,30 @@ function resolveSectionTable(
     };
 }
 
+function hasFieldValueInData(
+    invoiceData: Record<string, InvoiceSectionData> | null,
+    field: keyof InvoiceRow,
+): boolean {
+    if (!invoiceData) {
+        return false;
+    }
+
+    return Object.values(invoiceData).some((section) => {
+        if (!Array.isArray(section)) {
+            return false;
+        }
+
+        return section.some((item) => {
+            if (isInvoiceSectionError(item)) {
+                return false;
+            }
+
+            const row = item as InvoiceRow;
+            return Object.prototype.hasOwnProperty.call(row, field);
+        });
+    });
+}
+
 function formatHeaderLabel(label: string) {
     const words = label.split(" ");
     const lines: string[] = [];
@@ -207,6 +257,8 @@ const PURCHASE_INVOICE_COLUMNS: DynamicTableColumn<InvoiceRow>[] = [
     },
     { header: formatHeaderLabel("MST người bán"), field: "nbmst" },
     { header: formatHeaderLabel("Tên người bán"), field: "nbten" },
+    { header: formatHeaderLabel("MST người mua"), field: "nmmst" },
+    { header: formatHeaderLabel("Tên người mua"), field: "nmten" },
     {
         header: formatHeaderLabel("Tổng tiền trước thuế"),
         field: "tgtcthue",
@@ -363,7 +415,6 @@ export default function InvoicePage() {
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [purchaseFromDate, setPurchaseFromDate] = useState(initialDates.from);
     const [purchaseToDate, setPurchaseToDate] = useState(initialDates.to);
-    const [purchaseData, setPurchaseData] = useState<PurchaseInvoiceResponse | null>(null);
     const [hasSearchedPurchase, setHasSearchedPurchase] = useState(false);
     const [purchaseError, setPurchaseError] = useState("");
     const [isSearchingPurchase, setIsSearchingPurchase] = useState(false);
@@ -371,11 +422,22 @@ export default function InvoicePage() {
     const [isComparingPurchase, setIsComparingPurchase] = useState(false);
     const [comparePurchaseContext, setComparePurchaseContext] = useState<ComparePurchaseContext | null>(null);
     const [compareResultData, setCompareResultData] = useState<CompareResultData | null>(null);
+    const [invoiceData, setInvoiceData] = useState<Record<string, InvoiceSectionData> | null>(null);
     const [collapsedTables, setCollapsedTables] = useState({
         issued: false,
         noCode: false,
         cashRegister: false,
     });
+
+    const invoiceColumns = useMemo(() => {
+        return PURCHASE_INVOICE_COLUMNS.filter((column) => {
+            if (column.field === "nmmst" || column.field === "nmten" || column.field === "nbmst" || column.field === "nbten" || column.field === "tgtphi") {
+                return hasFieldValueInData(invoiceData, column.field as keyof InvoiceRow);
+            }
+
+            return true;
+        });
+    }, [invoiceData]);
     const compareFileInputRef = useRef<HTMLInputElement | null>(null);
     const router = useRouter();
 
@@ -392,7 +454,7 @@ export default function InvoicePage() {
     const loadRecentLoggedInvoiceUsers = useCallback(async () => {
         try {
             setIsLoadingRecentUsers(true);
-            const res = await callApi.get<unknown>("/module/listLoggedInvoice");
+            const res = await callApi.get<unknown>("/invoice/listLoggedInvoice");
             const recentUsers = normalizeRecentLoggedInvoiceAccounts(res.data);
 
             setRecentAccounts(recentUsers);
@@ -482,7 +544,7 @@ export default function InvoicePage() {
 
         try {
             setIsLoading(true);
-            const res = await callApi.post("/module/loginInvoice", {
+            const res = await callApi.post("/invoice/loginInvoice", {
                 username,
                 password,
                 cvalue: captcha,
@@ -513,7 +575,7 @@ export default function InvoicePage() {
 
         try {
             setIsQuickLoggingIn(true);
-            const res = await callApi.post("/module/loginInvoice", {
+            const res = await callApi.post("/invoice/loginInvoice", {
                 username: selectedRecentUsername,
             });
 
@@ -538,12 +600,18 @@ export default function InvoicePage() {
     const handleSelectFeature = (feature: number) => {
         setSelectedFeature(feature);
         setIsSidebarOpen(false);
+
+        setInvoiceData(null);
+        setHasSearchedPurchase(false);
+        setPurchaseError("");
+        setCompareResultData(null);
+        setComparePurchaseContext(null);
     };
 
     const handleLogout = async () => {
         try {
             setIsLoggingOut(true);
-            const res = await callApi.post("/module/logoutInvoice");
+            const res = await callApi.post("/invoice/logoutInvoice");
 
             localStorage.setItem("access_token", res.data.access_token);
         } catch (err: unknown) {
@@ -557,7 +625,7 @@ export default function InvoicePage() {
             setPassword("");
             setCaptcha("");
             setSelectedRecentUsername("");
-            setPurchaseData(null);
+            setInvoiceData(null);
             setHasSearchedPurchase(false);
             setPurchaseError("");
             loadCaptcha();
@@ -601,21 +669,27 @@ export default function InvoicePage() {
             setIsSearchingPurchase(true);
             setPurchaseError("");
 
-            const res = await callApi.get<unknown>("/module/getPurchaseInvoice", {
+            const featureConfig = INVOICE_FEATURES.find((f) => f.id === selectedFeature);
+            if (!featureConfig) {
+                setPurchaseError("Chức năng chưa được cấu hình.");
+                return;
+            }
+
+            const res = await callApi.get<unknown>(featureConfig.apiEndpoint, {
                 params: {
                     from: params.from,
                     to: params.to,
                 },
             });
 
-            setPurchaseData(normalizePurchaseInvoiceResponse(res.data));
+            setInvoiceData(normalizeInvoiceResponse(res.data, featureConfig.dataKeys.map((item) => item.key)));
             setHasSearchedPurchase(true);
         } catch (err: unknown) {
             const message =
                 (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-                "Không lấy được dữ liệu hoá đơn mua";
+                "Không lấy được dữ liệu hoá đơn";
             setPurchaseError(message);
-            setPurchaseData(null);
+            setInvoiceData(null);
             setHasSearchedPurchase(false);
         } finally {
             setIsSearchingPurchase(false);
@@ -632,7 +706,13 @@ export default function InvoicePage() {
             setIsExportingPurchase(true);
             setPurchaseError("");
 
-            const res = await callApi.get<Blob>("/module/exportPurchaseInvoice", {
+            const featureConfig = INVOICE_FEATURES.find((f) => f.id === selectedFeature);
+            if (!featureConfig) {
+                setPurchaseError("Chức năng chưa được cấu hình.");
+                return;
+            }
+
+            const res = await callApi.get<Blob>(featureConfig.exportEndpoint, {
                 params: {
                     from: params.from,
                     to: params.to,
@@ -716,7 +796,13 @@ export default function InvoicePage() {
             formData.append("from", comparePurchaseContext.from);
             formData.append("to", comparePurchaseContext.to);
 
-            const res = await callApi.post<unknown>("/module/comparePurchaseInvoice", formData, {
+            const featureConfig = INVOICE_FEATURES.find((f) => f.id === selectedFeature);
+            if (!featureConfig) {
+                setPurchaseError("Chức năng chưa được cấu hình đối xoát dữ liệu.");
+                return;
+            }
+
+            const res = await callApi.post<unknown>(featureConfig.compareEndpoint, formData, {
                 headers: {
                     "Content-Type": "multipart/form-data",
                 },
@@ -754,172 +840,117 @@ export default function InvoicePage() {
     };
 
     const renderFeatureContent = () => {
-        if (selectedFeature === 1) {
-            const issuedTable = resolveSectionTable(
-                purchaseData?.invoiceIssuedData,
-                "Chưa có dữ liệu hoá đơn này",
-            );
-            const noCodeTable = resolveSectionTable(
-                purchaseData?.invoiceNoCodeData,
-                "Chưa có dữ liệu hoá đơn này",
-            );
-            const cashRegisterTable = resolveSectionTable(
-                purchaseData?.invoiceCashRegisterData,
-                "Chưa có dữ liệu hoá đơn này",
-            );
+        const featureConfig = INVOICE_FEATURES.find((f) => f.id === selectedFeature);
+        if (!featureConfig) {
+            return "Chức năng không hợp lệ";
+        }
 
-            return (
-                <div className={styles.featureContent}>
-                    <div className={styles.filterPanel}>
-                        <div className={styles.filterGrid}>
-                            <div className={styles.field}>
-                                <label>Từ ngày</label>
-                                <input
-                                    type="date"
-                                    value={purchaseFromDate}
-                                    onChange={(e) => handlePurchaseFromDateChange(e.target.value)}
-                                />
-                            </div>
+        const getSectionKey = (sectionKey: string) => {
+            if (sectionKey === "invoiceIssuedData" || sectionKey === "invoiceElectronicData") {
+                return "issued" as const;
+            }
+            if (sectionKey === "invoiceNoCodeData") {
+                return "noCode" as const;
+            }
+            if (sectionKey === "invoiceCashRegisterData") {
+                return "cashRegister" as const;
+            }
 
-                            <div className={styles.field}>
-                                <label>Đến ngày</label>
-                                <input
-                                    type="date"
-                                    value={purchaseToDate}
-                                    onChange={(e) => handlePurchaseToDateChange(e.target.value)}
-                                />
-                            </div>
+            return "issued" as const;
+        };
 
-                        </div>
-
-                        <div className={styles.filterActions}>
-                            <button className={styles.loginButton} onClick={handleSearchPurchaseInvoices}>
-                                {isSearchingPurchase ? "Đang tìm kiếm..." : "Tìm kiếm"}
-                            </button>
-                            <button
-                                className={styles.exportButton}
-                                onClick={handleExportPurchaseInvoices}
-                                disabled={isExportingPurchase || !purchaseData || !hasSearchedPurchase}
-                                title={!hasSearchedPurchase ? "Vui lòng bấm Tìm kiếm trước khi xuất file" : undefined}
-                            >
-                                {isExportingPurchase ? "Đang xuất file..." : "Xuất Excel"}
-                            </button>
-                            <button
-                                className={styles.compareButton}
-                                onClick={handleOpenCompareFilePicker}
-                                disabled={isComparingPurchase || !purchaseData}
-                                title={!purchaseData ? "Vui lòng tìm kiếm dữ liệu trước" : undefined}
-                            >
-                                {isComparingPurchase ? "Đang đối xoát..." : "Đối xoát dữ liệu với file"}
-                            </button>
+        return (
+            <div className={styles.featureContent}>
+                <div className={styles.filterPanel}>
+                    <div className={styles.filterGrid}>
+                        <div className={styles.field}>
+                            <label>Từ ngày</label>
                             <input
-                                ref={compareFileInputRef}
-                                type="file"
-                                onChange={handleComparePurchaseFileChange}
-                                className={styles.hiddenFileInput}
+                                type="date"
+                                value={purchaseFromDate}
+                                onChange={(e) => handlePurchaseFromDateChange(e.target.value)}
                             />
-                            <span className={styles.helperText}>Tra cứu tối đa 12 tháng.</span>
                         </div>
+
+                        <div className={styles.field}>
+                            <label>Đến ngày</label>
+                            <input
+                                type="date"
+                                value={purchaseToDate}
+                                onChange={(e) => handlePurchaseToDateChange(e.target.value)}
+                            />
+                        </div>
+
                     </div>
 
-                    {purchaseError ? <div className={styles.errorMessage}>{purchaseError}</div> : null}
-
-                    <div className={styles.tableSection}>
-                        <div className={styles.sectionHeader}>
-                            <div className={styles.sectionHeaderLeft}>
-                                <button
-                                    className={`${styles.collapseButton} ${collapsedTables.issued ? styles.collapseButtonCollapsed : ""}`}
-                                    onClick={() => toggleTableSection("issued")}
-                                >
-                                    <span>&gt;</span>
-                                </button>
-                                <h3>Đã cấp mã hoá đơn</h3>
-                            </div>
-                            <span>{issuedTable.count} dòng</span>
-                        </div>
-                        {!collapsedTables.issued ? (
-                            <div className={styles.tableWrapper}>
-                                <DynamicTable
-                                    columns={PURCHASE_INVOICE_COLUMNS}
-                                    data={issuedTable.rows}
-                                    emptyText={issuedTable.emptyText}
-                                    tableClassName={styles.dataTable}
-                                    headClassName={styles.tableHeadCell}
-                                    cellClassName={styles.tableCell}
-                                    emptyClassName={styles.emptyState}
-                                />
-                            </div>
-                        ) : null}
-                    </div>
-
-                    <div className={styles.tableSection}>
-                        <div className={styles.sectionHeader}>
-                            <div className={styles.sectionHeaderLeft}>
-                                <button
-                                    className={`${styles.collapseButton} ${collapsedTables.noCode ? styles.collapseButtonCollapsed : ""}`}
-                                    onClick={() => toggleTableSection("noCode")}
-                                >
-                                    <span>&gt;</span>
-                                </button>
-                                <h3>Cục Thuế đã nhận không mã</h3>
-                            </div>
-                            <span>{noCodeTable.count} dòng</span>
-                        </div>
-                        {!collapsedTables.noCode ? (
-                            <div className={styles.tableWrapper}>
-                                <DynamicTable
-                                    columns={PURCHASE_INVOICE_COLUMNS}
-                                    data={noCodeTable.rows}
-                                    emptyText={noCodeTable.emptyText}
-                                    tableClassName={styles.dataTable}
-                                    headClassName={styles.tableHeadCell}
-                                    cellClassName={styles.tableCell}
-                                    emptyClassName={styles.emptyState}
-                                />
-                            </div>
-                        ) : null}
-                    </div>
-
-                    <div className={styles.tableSection}>
-                        <div className={styles.sectionHeader}>
-                            <div className={styles.sectionHeaderLeft}>
-                                <button
-                                    className={`${styles.collapseButton} ${collapsedTables.cashRegister ? styles.collapseButtonCollapsed : ""}`}
-                                    onClick={() => toggleTableSection("cashRegister")}
-                                >
-                                    <span>&gt;</span>
-                                </button>
-                                <h3>Cục Thuế đã nhận hoá đơn có mã khởi tạo từ máy tính tiền </h3>
-                            </div>
-                            <span>{cashRegisterTable.count} dòng</span>
-                        </div>
-                        {!collapsedTables.cashRegister ? (
-                            <div className={styles.tableWrapper}>
-                                <DynamicTable
-                                    columns={PURCHASE_INVOICE_COLUMNS}
-                                    data={cashRegisterTable.rows}
-                                    emptyText={cashRegisterTable.emptyText}
-                                    tableClassName={styles.dataTable}
-                                    headClassName={styles.tableHeadCell}
-                                    cellClassName={styles.tableCell}
-                                    emptyClassName={styles.emptyState}
-                                />
-                            </div>
-                        ) : null}
+                    <div className={styles.filterActions}>
+                        <button className={styles.loginButton} onClick={handleSearchPurchaseInvoices}>
+                            {isSearchingPurchase ? "Đang tìm kiếm..." : "Tìm kiếm"}
+                        </button>
+                        <button
+                            className={styles.exportButton}
+                            onClick={handleExportPurchaseInvoices}
+                            disabled={isExportingPurchase || !invoiceData || !hasSearchedPurchase}
+                            title={!hasSearchedPurchase ? "Vui lòng bấm Tìm kiếm trước khi xuất file" : undefined}
+                        >
+                            {isExportingPurchase ? "Đang xuất file..." : "Xuất Excel"}
+                        </button>
+                        <button
+                            className={styles.compareButton}
+                            onClick={handleOpenCompareFilePicker}
+                            disabled={isComparingPurchase || !invoiceData}
+                            title={!invoiceData ? "Vui lòng tìm kiếm dữ liệu trước" : undefined}
+                        >
+                            {isComparingPurchase ? "Đang đối xoát..." : "Đối xoát dữ liệu với file"}
+                        </button>
+                        <input
+                            ref={compareFileInputRef}
+                            type="file"
+                            onChange={handleComparePurchaseFileChange}
+                            className={styles.hiddenFileInput}
+                        />
+                        <span className={styles.helperText}>Tra cứu tối đa 12 tháng.</span>
                     </div>
                 </div>
-            );
-        }
 
-        if (selectedFeature === 2) {
-            return "Nội dung review dữ liệu của chức năng 2 sẽ hiển thị tại đây.";
-        }
+                {purchaseError ? <div className={styles.errorMessage}>{purchaseError}</div> : null}
 
-        if (selectedFeature === 3) {
-            return "Nội dung review dữ liệu của chức năng 3 sẽ hiển thị tại đây.";
-        }
+                {featureConfig.dataKeys.map((section) => {
+                    const table = resolveSectionTable(invoiceData?.[section.key], "Chưa có dữ liệu hoá đơn này");
+                    const collapseKey = getSectionKey(section.key);
 
-        return "Nội dung review dữ liệu của chức năng 4 sẽ hiển thị tại đây.";
+                    return (
+                        <div key={section.key} className={styles.tableSection}>
+                            <div className={styles.sectionHeader}>
+                                <div className={styles.sectionHeaderLeft}>
+                                    <button
+                                        className={`${styles.collapseButton} ${collapsedTables[collapseKey] ? styles.collapseButtonCollapsed : ""}`}
+                                        onClick={() => toggleTableSection(collapseKey)}
+                                    >
+                                        <span>&gt;</span>
+                                    </button>
+                                    <h3>{section.title}</h3>
+                                </div>
+                                <span>{table.count} dòng</span>
+                            </div>
+                            {!collapsedTables[collapseKey] ? (
+                                <div className={styles.tableWrapper}>
+                                    <DynamicTable
+                                        columns={invoiceColumns}
+                                        data={table.rows}
+                                        emptyText={table.emptyText}
+                                        tableClassName={styles.dataTable}
+                                        headClassName={styles.tableHeadCell}
+                                        cellClassName={styles.tableCell}
+                                        emptyClassName={styles.emptyState}
+                                    />
+                                </div>
+                            ) : null}
+                        </div>
+                    );
+                })}
+            </div>
+        );
     };
 
     return (
@@ -1028,13 +1059,13 @@ export default function InvoicePage() {
                         </div>
 
                         <div className={styles.menuList}>
-                            {[1, 2, 3, 4].map((feature) => (
+                            {[1, 2].map((feature) => (
                                 <button
                                     key={feature}
                                     className={`${styles.menuButton} ${selectedFeature === feature ? styles.menuButtonActive : ""}`}
                                     onClick={() => handleSelectFeature(feature)}
                                 >
-                                    {feature === 1 ? "Lấy hoá đơn mua" : `Chức năng ${feature}`}
+                                    {feature === 1 ? "Lấy hoá đơn mua" : "Lấy hoá đơn bán"}
                                 </button>
                             ))}
                         </div>
@@ -1049,9 +1080,10 @@ export default function InvoicePage() {
                                 {isSidebarOpen ? "Đóng menu" : "Mở menu chức năng"}
                             </button>
                         </div>
-                        <h2>{selectedFeature === 1 ? "Lấy hoá đơn mua" : "Review dữ liệu"}</h2>
+                        <h2 className={selectedFeature === 1 ? styles.titlePurchase : styles.titleSold}>
+                            {INVOICE_FEATURES.find((feature) => feature.id === selectedFeature)?.title || "Review dữ liệu"}
+                        </h2>
                         <div className={styles.previewBox}>
-                            <p><strong>Đang chọn:</strong> {selectedFeature === 1 ? "Lấy hoá đơn mua" : `Chức năng ${selectedFeature}`}</p>
                             <div>{renderFeatureContent()}</div>
                         </div>
                     </section>

@@ -1,21 +1,12 @@
 import axios from "axios";
 
-// Tạo instance Axios
 const callApi = axios.create({
-  baseURL: "https://acc-tools-be.onrender.com",
-  timeout: 90000,
+  baseURL: process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000",
+  timeout: parseInt(process.env.NEXT_PUBLIC_TIMEOUT || "90000"),
   headers: {
     "Content-Type": "application/json",
   },
 });
-
-// const callApi = axios.create({
-//   baseURL: "http://localhost:5000",
-//   timeout: 90000,
-//   headers: {
-//     "Content-Type": "application/json",
-//   },
-// });
 
 // Optional: interceptors để log hoặc handle error toàn cục
 callApi.interceptors.request.use(

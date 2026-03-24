@@ -279,7 +279,15 @@
 .rightPanel h2 {
   margin-top: 0;
   margin-bottom: 12px;
-  color: #1e3a8a;
+  text-align: center;
+}
+
+.titlePurchase {
+  color: #16a34a; /* xanh lá */
+}
+
+.titleSold {
+  color: #dc2626; /* đỏ */
 }
 
 .contentToolbar {
