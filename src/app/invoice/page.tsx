@@ -733,6 +733,46 @@ export default function InvoicePage() {
         }
     };
 
+    const handleSearchPurchaseInvoicesWithRenew = async () => {
+        const params = getValidatedPurchaseInvoiceParams();
+        if (!params) {
+            return;
+        }
+
+        try {
+            setIsSearchingPurchase(true);
+            setPurchaseError("");
+
+            const featureConfig = INVOICE_FEATURES.find((f) => f.id === selectedFeature);
+            if (!featureConfig) {
+                setPurchaseError("Chức năng chưa được cấu hình.");
+                return;
+            }
+
+            const res = await callApi.get<unknown>(featureConfig.apiEndpoint, {
+                params: {
+                    from: params.from,
+                    to: params.to,
+                    renew: true,
+                },
+            });
+
+            const normalizedInvoiceData = normalizeInvoiceResponse(res.data, featureConfig.dataKeys.map((item) => item.key));
+            setInvoiceData(normalizedInvoiceData);
+
+            const sectionErrorMessage = buildSectionErrorMessage(normalizedInvoiceData, featureConfig.dataKeys);
+            setPurchaseError(sectionErrorMessage);
+            setHasSearchedPurchase(true);
+        } catch (err: unknown) {
+            const message = await getErrorMessageAsync(err, "Không lấy được dữ liệu hoá đơn");
+            setPurchaseError(message);
+            setInvoiceData(null);
+            setHasSearchedPurchase(false);
+        } finally {
+            setIsSearchingPurchase(false);
+        }
+    };
+
     const handleExportPurchaseInvoices = async () => {
         const params = getValidatedPurchaseInvoiceParams();
         if (!params) {
@@ -928,6 +968,9 @@ export default function InvoicePage() {
                     <div className={styles.filterActions}>
                         <button className={styles.loginButton} onClick={handleSearchPurchaseInvoices}>
                             {isSearchingPurchase ? "Đang tìm kiếm..." : "Tìm kiếm"}
+                        </button>
+                        <button className={styles.secondaryButton} onClick={handleSearchPurchaseInvoicesWithRenew}>
+                            {isSearchingPurchase ? "Đang đồng bộ..." : "Tìm kiếm (Đồng bộ dữ liệu mới)"}
                         </button>
                         <button
                             className={styles.exportButton}

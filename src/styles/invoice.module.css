@@ -350,6 +350,21 @@
   margin-top: 6px;
 }
 
+.filterActions .loginButton {
+  flex: 1;
+  width: auto;
+  margin-top: 8px;
+}
+
+.filterActions .secondaryButton {
+  flex: 1;
+  width: auto;
+  margin-top: 10px;
+  background: #d1f2d9;
+  border-color: #86eba2;
+  color: #2e7d32;
+}
+
 .exportButton {
   margin-top: 8px;
   height: 42px;
