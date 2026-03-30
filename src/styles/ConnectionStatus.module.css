@@ -1,0 +1,63 @@
+.container {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 1000;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  pointer-events: none;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.connected {
+  background: #16a34a;
+  box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.15);
+}
+
+.disconnected {
+  background: #dc2626;
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.15);
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  color: #111827;
+}
+
+@media (max-width: 640px) {
+  .container {
+    top: 12px;
+    right: 12px;
+    padding: 7px 10px;
+  }
+
+  .label {
+    font-size: 13px;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .container {
+    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(17, 24, 39, 0.92);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.24);
+  }
+
+  .label {
+    color: #f9fafb;
+  }
+}
