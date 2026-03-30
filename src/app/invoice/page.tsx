@@ -816,7 +816,7 @@ export default function InvoicePage() {
 
             const featureConfig = INVOICE_FEATURES.find((f) => f.id === selectedFeature);
             if (!featureConfig) {
-                setPurchaseError("Chức năng chưa được cấu hình đối xoát dữ liệu.");
+                setPurchaseError("Chức năng chưa được cấu hình đối soát dữ liệu.");
                 return;
             }
 
@@ -830,7 +830,7 @@ export default function InvoicePage() {
         } catch (err: unknown) {
             const message =
                 (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-                "Đối xoát dữ liệu thất bại";
+                "Đối soát dữ liệu thất bại";
             setPurchaseError(message);
         } finally {
             setIsComparingPurchase(false);
@@ -928,7 +928,7 @@ export default function InvoicePage() {
                             disabled={isComparingPurchase || !invoiceData}
                             title={!invoiceData ? "Vui lòng tìm kiếm dữ liệu trước" : undefined}
                         >
-                            {isComparingPurchase ? "Đang đối xoát..." : "Đối xoát dữ liệu với file"}
+                            {isComparingPurchase ? "Đang đối soát..." : "Đối soát dữ liệu với file"}
                         </button>
                         <input
                             ref={compareFileInputRef}
@@ -945,7 +945,7 @@ export default function InvoicePage() {
                 {isMobileView && hasSearchedPurchase && invoiceData ? (
                     <div className={styles.mobileInfoBox}>
                         <p>Vui lòng truy cập bằng máy tính để xem toàn bộ dữ liệu hoặc xuất file.</p>
-                        <p>Nếu bạn cần thao tác đối soát/excel, bấm vào nút XUẤT FILE hoặc ĐỐI XOÁT.</p>
+                        <p>Nếu bạn cần thao tác đối soát/excel, bấm vào nút XUẤT FILE hoặc ĐỐI SOÁT.</p>
                         <div>
                             <p style={{ fontWeight: 600, marginBottom: 4 }}>Tổng dữ liệu đã tìm kiếm: {totalRows} dòng</p>
                             <ul style={{ paddingLeft: 18, margin: 0 }}>
@@ -1136,9 +1136,9 @@ export default function InvoicePage() {
             {comparePurchaseContext ? (
                 <div className={styles.compareModalOverlay}>
                     <div className={styles.compareModal}>
-                        <h3>Xác nhận đối xoát dữ liệu</h3>
+                        <h3>Xác nhận đối soát dữ liệu</h3>
                         <p>
-                            Bạn có muốn đối xoát file {comparePurchaseContext.file.name} đã chọn với dữ liệu đang tìm kiếm không ?
+                            Bạn có muốn đối soát file {comparePurchaseContext.file.name} đã chọn với dữ liệu đang tìm kiếm không ?
                         </p>
                         <div className={styles.compareModalActions}>
                             <button
@@ -1155,7 +1155,7 @@ export default function InvoicePage() {
                                 onClick={handleConfirmComparePurchase}
                                 disabled={isComparingPurchase}
                             >
-                                {isComparingPurchase ? "Đang đối xoát..." : "Xác nhận"}
+                                {isComparingPurchase ? "Đang đối soát..." : "Xác nhận"}
                             </button>
                         </div>
                     </div>
@@ -1166,7 +1166,7 @@ export default function InvoicePage() {
                 <div className={styles.compareResultOverlay}>
                     <div className={styles.compareResultModal}>
                         <div className={styles.compareResultHeader}>
-                            <h3>Kết quả đối xoát dữ liệu</h3>
+                            <h3>Kết quả đối soát dữ liệu</h3>
                             <button
                                 type="button"
                                 className={styles.compareResultCloseButton}
