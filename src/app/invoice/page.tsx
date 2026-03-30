@@ -3,7 +3,7 @@
 import { type ChangeEvent, type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styles from "../../styles/invoice.module.css";
 import apiTax from "@/src/lib/axiosCapcha";
-import callApi from "@/src/lib/axios";
+import callApi, { getErrorMessageAsync } from "@/src/lib/axios";
 import { decodeTokenPayload } from "@/src/lib/jwt";
 import { DynamicTable, type DynamicTableColumn } from "@/src/components/DynamicTable";
 import { useRouter } from "next/navigation";
@@ -154,6 +154,29 @@ function normalizeInvoiceResponse(data: unknown, keys: string[]): Record<string,
     });
 
     return result;
+}
+
+function isInvoiceSectionDataErrored(data: InvoiceSectionData | undefined): boolean {
+    if (!Array.isArray(data) || data.length === 0) {
+        return false;
+    }
+
+    return data.some((item) => isInvoiceSectionError(item));
+}
+
+function buildSectionErrorMessage(
+    invoiceData: Record<string, InvoiceSectionData>,
+    dataKeys: Array<{ key: string; title: string }>,
+): string {
+    const erroredSectionTitles = dataKeys
+        .filter((section) => isInvoiceSectionDataErrored(invoiceData[section.key]))
+        .map((section) => section.title);
+
+    if (erroredSectionTitles.length === 0) {
+        return "";
+    }
+
+    return `Có lỗi dữ liệu ở bảng: ${erroredSectionTitles.join(", ")}.`;
 }
 
 function resolveSectionTable(
@@ -574,9 +597,7 @@ export default function InvoicePage() {
                 loadRecentLoggedInvoiceUsers();
             }
         } catch (err: unknown) {
-            const message =
-                (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-                "Đăng nhập thất bại";
+            const message = await getErrorMessageAsync(err, "Đăng nhập thất bại");
             alert(message);
 
             loadCaptcha();
@@ -602,9 +623,7 @@ export default function InvoicePage() {
                 loadRecentLoggedInvoiceUsers();
             }
         } catch (err: unknown) {
-            const message =
-                (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-                "Đăng nhập nhanh thất bại";
+            const message = await getErrorMessageAsync(err, "Đăng nhập nhanh thất bại");
             alert(message);
         } finally {
             setIsQuickLoggingIn(false);
@@ -633,9 +652,7 @@ export default function InvoicePage() {
 
             localStorage.setItem("access_token", res.data.access_token);
         } catch (err: unknown) {
-            const message =
-                (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-                "Đăng xuất thất bại";
+            const message = await getErrorMessageAsync(err, "Đăng xuất thất bại");
             alert(message);
         } finally {
             setUsernameInvoice("");
@@ -700,12 +717,14 @@ export default function InvoicePage() {
                 },
             });
 
-            setInvoiceData(normalizeInvoiceResponse(res.data, featureConfig.dataKeys.map((item) => item.key)));
+            const normalizedInvoiceData = normalizeInvoiceResponse(res.data, featureConfig.dataKeys.map((item) => item.key));
+            setInvoiceData(normalizedInvoiceData);
+
+            const sectionErrorMessage = buildSectionErrorMessage(normalizedInvoiceData, featureConfig.dataKeys);
+            setPurchaseError(sectionErrorMessage);
             setHasSearchedPurchase(true);
         } catch (err: unknown) {
-            const message =
-                (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-                "Không lấy được dữ liệu hoá đơn";
+            const message = await getErrorMessageAsync(err, "Không lấy được dữ liệu hoá đơn");
             setPurchaseError(message);
             setInvoiceData(null);
             setHasSearchedPurchase(false);
@@ -755,9 +774,7 @@ export default function InvoicePage() {
             link.remove();
             window.URL.revokeObjectURL(url);
         } catch (err: unknown) {
-            const message =
-                (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-                "Xuất file thất bại";
+            const message = await getErrorMessageAsync(err, "Xuất file thất bại");
             setPurchaseError(message);
         } finally {
             setIsExportingPurchase(false);
@@ -828,9 +845,7 @@ export default function InvoicePage() {
 
             setCompareResultData(res.data as CompareResultData);
         } catch (err: unknown) {
-            const message =
-                (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-                "Đối soát dữ liệu thất bại";
+            const message = await getErrorMessageAsync(err, "Đối soát dữ liệu thất bại");
             setPurchaseError(message);
         } finally {
             setIsComparingPurchase(false);

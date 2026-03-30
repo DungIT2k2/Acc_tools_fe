@@ -15,26 +15,26 @@ export default function MenuPage() {
     }, [router]);
 
     const modules = [
-        {
-            name: "So khớp với file thuế",
-            path: "/module",
-            icon: "📊",
-        },
+        // {
+        //     name: "So khớp với file thuế",
+        //     path: "/module",
+        //     icon: "📊",
+        // },
         {
             name: "Hoá đơn điện tử",
             path: "/invoice",
             icon: "🧾",
         },
-        {
-            name: "Chức năng 3",
-            path: "/module-3",
-            icon: "📁",
-        },
-        {
-            name: "Chức năng 4",
-            path: "/module-4",
-            icon: "⚙️",
-        },
+        // {
+        //     name: "Chức năng 3",
+        //     path: "/module-3",
+        //     icon: "📁",
+        // },
+        // {
+        //     name: "Chức năng 4",
+        //     path: "/module-4",
+        //     icon: "⚙️",
+        // },
     ];
 
     return (
