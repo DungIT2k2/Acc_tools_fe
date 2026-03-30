@@ -332,12 +332,11 @@ function formatDateForInput(date: Date) {
 
 function getInitialDateRange() {
     const today = new Date();
-    const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-    const end = new Date(today.getFullYear(), today.getMonth(), 0);
+    const start = new Date(today.getFullYear(), today.getMonth(), 1);
 
     return {
         from: formatDateForInput(start),
-        to: formatDateForInput(end),
+        to: formatDateForInput(today),
     };
 }
 
@@ -349,30 +348,35 @@ function getEndOfMonth(date: Date) {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0);
 }
 
-function toStartOfMonthInputValue(value: string) {
-    return formatDateForInput(getStartOfMonth(parseInputDate(value)));
-}
-
-function toEndOfMonthInputValue(value: string) {
-    return formatDateForInput(getEndOfMonth(parseInputDate(value)));
-}
-
 function getInclusiveMonthCount(startDate: Date, endDate: Date) {
     return (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth()) + 1;
 }
 
 function buildPurchaseInvoiceMonthParams(fromValue: string, toValue: string) {
-    const startDate = getStartOfMonth(parseInputDate(fromValue));
-    const endDate = getStartOfMonth(parseInputDate(toValue));
-    const monthCount = getInclusiveMonthCount(startDate, endDate);
+    const fromDate = parseInputDate(fromValue);
+    const toDate = parseInputDate(toValue);
+
+    const startMonth = getStartOfMonth(fromDate);
+    const endMonth = getStartOfMonth(toDate);
+    const monthCount = getInclusiveMonthCount(startMonth, endMonth);
 
     const fromDates: string[] = [];
     const toDates: string[] = [];
 
     for (let index = monthCount - 1; index >= 0; index -= 1) {
-        const currentMonth = new Date(startDate.getFullYear(), startDate.getMonth() + index, 1);
-        fromDates.push(formatDateForApi(getStartOfMonth(currentMonth)));
-        toDates.push(formatDateForApi(getEndOfMonth(currentMonth)));
+        const currentMonth = new Date(startMonth.getFullYear(), startMonth.getMonth() + index, 1);
+        const isFromMonth =
+            currentMonth.getFullYear() === fromDate.getFullYear() &&
+            currentMonth.getMonth() === fromDate.getMonth();
+        const isToMonth =
+            currentMonth.getFullYear() === toDate.getFullYear() &&
+            currentMonth.getMonth() === toDate.getMonth();
+
+        const currentFromDate = isFromMonth ? fromDate : getStartOfMonth(currentMonth);
+        const currentToDate = isToMonth ? toDate : getEndOfMonth(currentMonth);
+
+        fromDates.push(formatDateForApi(currentFromDate));
+        toDates.push(formatDateForApi(currentToDate));
     }
 
     return {
@@ -896,12 +900,12 @@ export default function InvoicePage() {
     const isLoggedIn = Boolean(usernameInvoice);
 
     const handlePurchaseFromDateChange = (value: string) => {
-        setPurchaseFromDate(toStartOfMonthInputValue(value));
+        setPurchaseFromDate(value);
         setHasSearchedPurchase(false);
     };
 
     const handlePurchaseToDateChange = (value: string) => {
-        setPurchaseToDate(toEndOfMonthInputValue(value));
+        setPurchaseToDate(value);
         setHasSearchedPurchase(false);
     };
 
@@ -970,7 +974,7 @@ export default function InvoicePage() {
                             {isSearchingPurchase ? "Đang tìm kiếm..." : "Tìm kiếm"}
                         </button>
                         <button className={styles.secondaryButton} onClick={handleSearchPurchaseInvoicesWithRenew}>
-                            {isSearchingPurchase ? "Đang đồng bộ..." : "Tìm kiếm (Đồng bộ dữ liệu mới)"}
+                            {isSearchingPurchase ? "Đang đồng bộ..." : "Tìm kiếm (Đồng bộ dữ liệu mới nhất)"}
                         </button>
                         <button
                             className={styles.exportButton}
@@ -986,7 +990,7 @@ export default function InvoicePage() {
                             disabled={isComparingPurchase || !invoiceData}
                             title={!invoiceData ? "Vui lòng tìm kiếm dữ liệu trước" : undefined}
                         >
-                            {isComparingPurchase ? "Đang đối soát..." : "Đối soát dữ liệu với file"}
+                            {isComparingPurchase ? "Đang đối soát..." : "Đối soát dữ liệu với bảng kê"}
                         </button>
                         <input
                             ref={compareFileInputRef}
