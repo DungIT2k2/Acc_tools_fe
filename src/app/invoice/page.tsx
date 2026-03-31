@@ -460,6 +460,8 @@ function normalizeRecentLoggedInvoiceAccounts(data: unknown): RecentLoggedInvoic
         .filter((item): item is RecentLoggedInvoiceAccount => item !== null);
 }
 
+const COMPARE_RESULT_AUTO_CLOSE_MS = 5 * 60 * 1000;
+
 export default function InvoicePage() {
     const initialDates = getInitialDateRange();
     const [username, setUsername] = useState("");
@@ -613,6 +615,18 @@ export default function InvoicePage() {
 
         return () => clearInterval(intervalId);
     }, [isAuthResolved, loadCaptcha, usernameInvoice]);
+
+    useEffect(() => {
+        if (!compareResultData) {
+            return;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            setCompareResultData(null);
+        }, COMPARE_RESULT_AUTO_CLOSE_MS);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [compareResultData]);
 
     const handleLoginSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
