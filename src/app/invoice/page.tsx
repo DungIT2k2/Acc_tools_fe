@@ -24,6 +24,7 @@ type InvoiceRow = {
     tgtphi: number | null;
     tgtttbso: number;
     tthai: string;
+    diengiai?: string;
 };
 
 type InvoiceSectionError = {
@@ -164,10 +165,35 @@ function isInvoiceSectionDataErrored(data: InvoiceSectionData | undefined): bool
     return data.some((item) => isInvoiceSectionError(item));
 }
 
+function checkDiengaiErrorInInvoiceData(
+    invoiceData: Record<string, InvoiceSectionData>,
+): boolean {
+    for (const sectionData of Object.values(invoiceData)) {
+        if (Array.isArray(sectionData)) {
+            for (const row of sectionData) {
+                if (
+                    typeof row === "object" &&
+                    row !== null &&
+                    "diengiai" in row &&
+                    (row as { diengiai?: unknown }).diengiai === "error"
+                ) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
 function buildSectionErrorMessage(
     invoiceData: Record<string, InvoiceSectionData>,
     dataKeys: Array<{ key: string; title: string }>,
 ): string {
+    const diengaiHasError = checkDiengaiErrorInInvoiceData(invoiceData);
+    if (diengaiHasError) {
+        return "Có lỗi diễn giải dữ liệu hoá đơn";
+    }
+
     const erroredSectionTitles = dataKeys
         .filter((section) => isInvoiceSectionDataErrored(invoiceData[section.key]))
         .map((section) => section.title);
@@ -308,6 +334,16 @@ const PURCHASE_INVOICE_COLUMNS: DynamicTableColumn<InvoiceRow>[] = [
         render: (value) => new Intl.NumberFormat("vi-VN").format(Number(value ?? 0)),
     },
     { header: formatHeaderLabel("Trạng thái hoá đơn"), field: "tthai" },
+    {
+        header: formatHeaderLabel("Diễn giải"),
+        field: "diengiai",
+        render: (value) => {
+            if (typeof value !== "string" || !value) {
+                return "-";
+            }
+            return value;
+        },
+    },
 ];
 
 function formatDateForApi(date: Date) {
