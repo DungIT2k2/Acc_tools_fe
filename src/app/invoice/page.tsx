@@ -487,6 +487,7 @@ export default function InvoicePage() {
     const [isExportingPurchase, setIsExportingPurchase] = useState(false);
     const [isComparingPurchase, setIsComparingPurchase] = useState(false);
     const [isExportingCompareResult, setIsExportingCompareResult] = useState(false);
+    const [compareAutoCloseSecondsLeft, setCompareAutoCloseSecondsLeft] = useState(0);
     const [comparePurchaseContext, setComparePurchaseContext] = useState<ComparePurchaseContext | null>(null);
     const [compareResultData, setCompareResultData] = useState<CompareResultData | null>(null);
     const [invoiceData, setInvoiceData] = useState<Record<string, InvoiceSectionData> | null>(null);
@@ -618,15 +619,28 @@ export default function InvoicePage() {
 
     useEffect(() => {
         if (!compareResultData) {
+            setCompareAutoCloseSecondsLeft(0);
             return;
         }
+
+        setCompareAutoCloseSecondsLeft(Math.ceil(COMPARE_RESULT_AUTO_CLOSE_MS / 1000));
+
+        const intervalId = window.setInterval(() => {
+            setCompareAutoCloseSecondsLeft((prev) => (prev <= 1 ? 0 : prev - 1));
+        }, 1000);
 
         const timeoutId = window.setTimeout(() => {
             setCompareResultData(null);
         }, COMPARE_RESULT_AUTO_CLOSE_MS);
 
-        return () => window.clearTimeout(timeoutId);
+        return () => {
+            window.clearInterval(intervalId);
+            window.clearTimeout(timeoutId);
+        };
     }, [compareResultData]);
+
+    const compareAutoCloseMinutesLeft = Math.floor(compareAutoCloseSecondsLeft / 60);
+    const compareAutoCloseSecondsRemain = String(compareAutoCloseSecondsLeft % 60).padStart(2, "0");
 
     const handleLoginSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -1343,6 +1357,11 @@ export default function InvoicePage() {
                                 </button>
                             </div>
                         </div>
+                        {compareAutoCloseSecondsLeft > 0 ? (
+                            <p className={styles.compareResultAutoCloseHint}>
+                                Tự đóng sau {compareAutoCloseMinutesLeft}:{compareAutoCloseSecondsRemain}
+                            </p>
+                        ) : null}
                         <div className={styles.compareResultBody}>
                             <div className={styles.compareResultColumn}>
                                 <div className={styles.compareResultColumnTitle}>
