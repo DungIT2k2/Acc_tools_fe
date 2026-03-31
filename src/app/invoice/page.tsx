@@ -64,6 +64,7 @@ type CompareErrorItem = {
 type CompareResultData = {
     myErrorArr: CompareErrorItem[];
     taxErrorArr: CompareErrorItem[];
+    record?: string | number;
 };
 
 const PURCHASE_INVOICE_SECTION_ERROR_TEXT = "Có lỗi xảy ra khi lấy hoá đơn";
@@ -483,6 +484,7 @@ export default function InvoicePage() {
     const [isSearchingPurchase, setIsSearchingPurchase] = useState(false);
     const [isExportingPurchase, setIsExportingPurchase] = useState(false);
     const [isComparingPurchase, setIsComparingPurchase] = useState(false);
+    const [isExportingCompareResult, setIsExportingCompareResult] = useState(false);
     const [comparePurchaseContext, setComparePurchaseContext] = useState<ComparePurchaseContext | null>(null);
     const [compareResultData, setCompareResultData] = useState<CompareResultData | null>(null);
     const [invoiceData, setInvoiceData] = useState<Record<string, InvoiceSectionData> | null>(null);
@@ -933,6 +935,49 @@ export default function InvoicePage() {
         }
     };
 
+    const handleExportCompareResult = async () => {
+        if (!compareResultData?.record) {
+            setPurchaseError("Không có mã record để xuất kết quả đối soát.");
+            return;
+        }
+
+        try {
+            setIsExportingCompareResult(true);
+            setPurchaseError("");
+
+            const res = await callApi.get<Blob>("/invoice/exportCompareResult", {
+                params: {
+                    record: compareResultData.record,
+                },
+                responseType: "blob",
+            });
+
+            const contentDisposition = res.headers["content-disposition"] as string | undefined;
+            const filenameMatch = contentDisposition?.match(/filename\*?=(?:UTF-8''|\")?([^\";]+)/i);
+            const decodedFilename = filenameMatch?.[1]
+                ? decodeURIComponent(filenameMatch[1].replace(/"/g, ""))
+                : "ket-qua-doi-soat.xlsx";
+
+            const blob = new Blob([res.data], {
+                type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            });
+
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = decodedFilename;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (err: unknown) {
+            const message = await getErrorMessageAsync(err, "Xuất kết quả đối soát thất bại");
+            setPurchaseError(message);
+        } finally {
+            setIsExportingCompareResult(false);
+        }
+    };
+
     const isLoggedIn = Boolean(usernameInvoice);
 
     const handlePurchaseFromDateChange = (value: string) => {
@@ -1265,13 +1310,24 @@ export default function InvoicePage() {
                     <div className={styles.compareResultModal}>
                         <div className={styles.compareResultHeader}>
                             <h3>Kết quả đối soát dữ liệu</h3>
-                            <button
-                                type="button"
-                                className={styles.compareResultCloseButton}
-                                onClick={handleCloseCompareResult}
-                            >
-                                Đóng
-                            </button>
+                            <div className={styles.compareResultActions}>
+                                <button
+                                    type="button"
+                                    className={styles.compareResultExportButton}
+                                    onClick={handleExportCompareResult}
+                                    disabled={isExportingCompareResult || !compareResultData.record}
+                                    title={!compareResultData.record ? "Không có record để xuất kết quả" : undefined}
+                                >
+                                    {isExportingCompareResult ? "Đang xuất..." : "Xuất kết quả đối soát"}
+                                </button>
+                                <button
+                                    type="button"
+                                    className={styles.compareResultCloseButton}
+                                    onClick={handleCloseCompareResult}
+                                >
+                                    Đóng
+                                </button>
+                            </div>
                         </div>
                         <div className={styles.compareResultBody}>
                             <div className={styles.compareResultColumn}>

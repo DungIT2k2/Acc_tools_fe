@@ -502,6 +502,32 @@
   color: #0f172a;
 }
 
+.compareResultActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.compareResultExportButton {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid #0d9488;
+  background: #0f766e;
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.compareResultExportButton:hover {
+  background: #0d9488;
+}
+
+.compareResultExportButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .compareResultCloseButton {
   height: 36px;
   padding: 0 16px;
