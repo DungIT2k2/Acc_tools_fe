@@ -1,10 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styles from "../styles/Login.module.css";
 import callApi from "../lib/axios";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
+import { decodeTokenPayload } from "../lib/jwt";
+
+type JwtPayload = {
+  exp?: number;
+};
+
+function isTokenValid(token: string) {
+  const payload = decodeTokenPayload<JwtPayload>(token);
+
+  if (!payload) {
+    return false;
+  }
+
+  if (typeof payload.exp !== "number") {
+    return true;
+  }
+
+  const nowInSeconds = Math.floor(Date.now() / 1000);
+  return payload.exp > nowInSeconds;
+}
 
 export default function Home() {
   const [username, setUsername] = useState("");
@@ -33,6 +53,21 @@ export default function Home() {
     }
 
   };
+
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+
+    if (!token) {
+      return;
+    }
+
+    if (isTokenValid(token)) {
+      router.replace("/menu");
+      return;
+    }
+
+    localStorage.removeItem("access_token");
+  }, [router]);
 
   return (
     <div className={styles.container}>
