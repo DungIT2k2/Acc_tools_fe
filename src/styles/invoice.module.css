@@ -353,7 +353,7 @@
 .filterActions .loginButton {
   flex: 0 0 auto;
   width: fit-content;
-  min-width: 120px;
+  min-width: 300px;
   padding: 0 16px;
   margin-top: 8px;
 }
