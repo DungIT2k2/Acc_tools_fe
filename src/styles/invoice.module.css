@@ -351,14 +351,18 @@
 }
 
 .filterActions .loginButton {
-  flex: 1;
-  width: auto;
+  flex: 0 0 auto;
+  width: fit-content;
+  min-width: 120px;
+  padding: 0 16px;
   margin-top: 8px;
 }
 
 .filterActions .secondaryButton {
-  flex: 1;
-  width: auto;
+  flex: 0 0 auto;
+  width: fit-content;
+  min-width: 240px;
+  padding: 0 16px;
   margin-top: 10px;
   background: #d1f2d9;
   border-color: #86eba2;
@@ -375,6 +379,23 @@
   font-weight: 600;
   padding: 0 14px;
   cursor: pointer;
+}
+
+.detailButton {
+  margin-top: 8px;
+  height: 42px;
+  border: 1px solid #0284c7;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0369a1;
+  font-weight: 600;
+  padding: 0 14px;
+  cursor: pointer;
+}
+
+.detailButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .compareButton {
@@ -697,13 +718,15 @@
   border: 1px solid #dbeafe;
   border-radius: 10px;
   background: #ffffff;
+  max-width: 100%;
 }
 
 .dataTable {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1120px;
+  min-width: 1080px;
   background: #ffffff;
+  table-layout: fixed;
 }
 
 .tableHeadCell {
@@ -739,52 +762,74 @@
   text-align: center;
 }
 
+.dataTable th[data-field="stt"],
+.dataTable td[data-field="stt"] {
+  width: 44px;
+  min-width: 44px;
+}
+
+.dataTable th[data-field="khmshdon"],
+.dataTable td[data-field="khmshdon"] {
+  width: 64px;
+  min-width: 64px;
+}
+
+.dataTable th[data-field="khhdon"],
+.dataTable td[data-field="khhdon"] {
+  width: 88px;
+  min-width: 88px;
+}
+
+.dataTable th[data-field="shdon"],
+.dataTable td[data-field="shdon"] {
+  width: 70px;
+  min-width: 70px;
+}
+
+.dataTable th[data-field="nbten"],
+.dataTable td[data-field="nbten"],
+.dataTable th[data-field="nmten"],
+.dataTable td[data-field="nmten"],
+.dataTable th[data-field="diengiai"],
+.dataTable td[data-field="diengiai"] {
+  text-align: left;
+}
+
+.dataTable th[data-field="nbten"],
+.dataTable td[data-field="nbten"],
+.dataTable th[data-field="nmten"],
+.dataTable td[data-field="nmten"] {
+  width: 150px;
+  min-width: 150px;
+}
+
+.dataTable th[data-field="diengiai"],
+.dataTable td[data-field="diengiai"] {
+  width: 140px;
+  min-width: 140px;
+  max-width: 140px;
+}
+
+.dataTable td[data-field="diengiai"] {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.dataTable td[data-field="tgtcthue"],
+.dataTable td[data-field="tgtthue"],
+.dataTable td[data-field="ttcktmai"],
+.dataTable td[data-field="tgtphi"],
+.dataTable td[data-field="tgtttbso"] {
+  text-align: right;
+}
+
 .dataTable tbody tr:nth-child(even) .tableCell {
   background: #f8fbff;
 }
 
 .dataTable tbody tr:hover .tableCell {
   background: #eef6ff;
-}
-
-.dataTable th:nth-child(1),
-.dataTable td:nth-child(1) {
-  width: 44px;
-  min-width: 44px;
-  text-align: center;
-}
-
-.dataTable th:nth-child(2),
-.dataTable td:nth-child(2) {
-  width: 64px;
-  min-width: 64px;
-  text-align: center;
-}
-
-.dataTable th:nth-child(3),
-.dataTable td:nth-child(3) {
-  width: 88px;
-  min-width: 88px;
-  text-align: center;
-}
-
-.dataTable th:nth-child(4),
-.dataTable td:nth-child(4) {
-  width: 70px;
-  min-width: 70px;
-  text-align: center;
-}
-
-.dataTable td:nth-child(8),
-.dataTable td:nth-child(9),
-.dataTable td:nth-child(10),
-.dataTable td:nth-child(11),
-.dataTable td:nth-child(12) {
-  text-align: right;
-}
-
-.dataTable td:nth-child(7) {
-  text-align: left;
 }
 
 .emptyState {
@@ -825,6 +870,15 @@
   }
 
   .compareButton {
+    width: 100%;
+  }
+
+  .detailButton {
+    width: 100%;
+  }
+
+  .filterActions .loginButton,
+  .filterActions .secondaryButton {
     width: 100%;
   }
 

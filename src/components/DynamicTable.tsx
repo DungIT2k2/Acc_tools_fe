@@ -34,7 +34,7 @@ export function DynamicTable<T extends Record<string, unknown>>({
       <thead>
         <tr>
           {columns.map((column) => (
-            <th key={String(column.field)} className={headClassName}>
+            <th key={String(column.field)} className={headClassName} data-field={String(column.field)}>
               {column.header}
             </th>
           ))}
@@ -47,7 +47,7 @@ export function DynamicTable<T extends Record<string, unknown>>({
               const value = row[column.field];
 
               return (
-                <td key={String(column.field)} className={cellClassName}>
+                <td key={String(column.field)} className={cellClassName} data-field={String(column.field)}>
                   {column.render ? column.render(value, row) : String(value ?? "")}
                 </td>
               );

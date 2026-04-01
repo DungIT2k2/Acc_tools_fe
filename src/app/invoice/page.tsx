@@ -310,6 +310,16 @@ const PURCHASE_INVOICE_COLUMNS: DynamicTableColumn<InvoiceRow>[] = [
     { header: formatHeaderLabel("MST người mua"), field: "nmmst" },
     { header: formatHeaderLabel("Tên người mua"), field: "nmten" },
     {
+        header: formatHeaderLabel("Diễn giải"),
+        field: "diengiai",
+        render: (value) => {
+            if (typeof value !== "string" || !value) {
+                return "-";
+            }
+            return value;
+        },
+    },
+    {
         header: formatHeaderLabel("Tổng tiền trước thuế"),
         field: "tgtcthue",
         render: (value) => new Intl.NumberFormat("vi-VN").format(Number(value ?? 0)),
@@ -335,16 +345,6 @@ const PURCHASE_INVOICE_COLUMNS: DynamicTableColumn<InvoiceRow>[] = [
         render: (value) => new Intl.NumberFormat("vi-VN").format(Number(value ?? 0)),
     },
     { header: formatHeaderLabel("Trạng thái hoá đơn"), field: "tthai" },
-    {
-        header: formatHeaderLabel("Diễn giải"),
-        field: "diengiai",
-        render: (value) => {
-            if (typeof value !== "string" || !value) {
-                return "-";
-            }
-            return value;
-        },
-    },
 ];
 
 function formatDateForApi(date: Date) {
@@ -485,6 +485,7 @@ export default function InvoicePage() {
     const [purchaseError, setPurchaseError] = useState("");
     const [isSearchingPurchase, setIsSearchingPurchase] = useState(false);
     const [isExportingPurchase, setIsExportingPurchase] = useState(false);
+    const [isLoadingInvoiceDetails, setIsLoadingInvoiceDetails] = useState(false);
     const [isComparingPurchase, setIsComparingPurchase] = useState(false);
     const [isExportingCompareResult, setIsExportingCompareResult] = useState(false);
     const [compareAutoCloseSecondsLeft, setCompareAutoCloseSecondsLeft] = useState(0);
@@ -891,6 +892,46 @@ export default function InvoicePage() {
         }
     };
 
+    const handleLoadInvoiceDetails = async () => {
+        const params = getValidatedPurchaseInvoiceParams();
+        if (!params) {
+            return;
+        }
+
+        try {
+            setIsLoadingInvoiceDetails(true);
+            setPurchaseError("");
+
+            const featureConfig = INVOICE_FEATURES.find((f) => f.id === selectedFeature);
+            if (!featureConfig) {
+                setPurchaseError("Chức năng chưa được cấu hình.");
+                return;
+            }
+
+            const res = await callApi.get<unknown>(featureConfig.apiEndpoint, {
+                params: {
+                    from: params.from,
+                    to: params.to,
+                    renewDetail: true,
+                },
+            });
+
+            const normalizedInvoiceData = normalizeInvoiceResponse(res.data, featureConfig.dataKeys.map((item) => item.key));
+            setInvoiceData(normalizedInvoiceData);
+
+            const sectionErrorMessage = buildSectionErrorMessage(normalizedInvoiceData, featureConfig.dataKeys);
+            setPurchaseError(sectionErrorMessage);
+            setHasSearchedPurchase(true);
+        } catch (err: unknown) {
+            const message = await getErrorMessageAsync(err, "Không lấy được dữ liệu chi tiết hoá đơn");
+            setPurchaseError(message);
+            setInvoiceData(null);
+            setHasSearchedPurchase(false);
+        } finally {
+            setIsLoadingInvoiceDetails(false);
+        }
+    };
+
     const handleOpenCompareFilePicker = () => {
         compareFileInputRef.current?.click();
     };
@@ -1084,6 +1125,14 @@ export default function InvoicePage() {
                         </button>
                         <button className={styles.secondaryButton} onClick={handleSearchPurchaseInvoicesWithRenew}>
                             {isSearchingPurchase ? "Đang đồng bộ..." : "Tìm kiếm (Đồng bộ dữ liệu mới nhất)"}
+                        </button>
+                        <button
+                            className={styles.detailButton}
+                            onClick={handleLoadInvoiceDetails}
+                            disabled={isLoadingInvoiceDetails || !invoiceData || !hasSearchedPurchase}
+                            title={!hasSearchedPurchase ? "Vui lòng bấm Tìm kiếm trước khi lấy dữ liệu chi tiết" : undefined}
+                        >
+                            {isLoadingInvoiceDetails ? "Đang lấy chi tiết..." : "Lấy dữ liệu chi tiết hoá đơn"}
                         </button>
                         <button
                             className={styles.exportButton}
