@@ -7,6 +7,11 @@ import { useEffect } from "react";
 export default function MenuPage() {
     const router = useRouter();
 
+    const handleLogout = () => {
+        localStorage.removeItem("access_token");
+        router.replace("/");
+    };
+
     useEffect(() => {
         const token = localStorage.getItem("access_token");
         if (!token) {
@@ -44,6 +49,15 @@ export default function MenuPage() {
                 <p className={styles.subtitle}>
                     Chọn chức năng bạn muốn sử dụng
                 </p>
+                <div className={styles.headerActions}>
+                    <button
+                        type="button"
+                        className={styles.logoutButton}
+                        onClick={handleLogout}
+                    >
+                        Đăng xuất
+                    </button>
+                </div>
             </div>
 
             <div className={styles.grid}>
