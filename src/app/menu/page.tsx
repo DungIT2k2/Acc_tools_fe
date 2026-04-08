@@ -20,11 +20,11 @@ export default function MenuPage() {
     }, [router]);
 
     const modules = [
-        // {
-        //     name: "So khớp với file thuế",
-        //     path: "/module",
-        //     icon: "📊",
-        // },
+        {
+            name: "So khớp trên file excel",
+            path: "/file",
+            icon: "📊",
+        },
         {
             name: "Hoá đơn điện tử",
             path: "/invoice",
