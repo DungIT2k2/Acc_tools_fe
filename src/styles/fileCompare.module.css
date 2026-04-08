@@ -375,6 +375,80 @@
   padding: 12px;
 }
 
+.compareResultHeader {
+  display: grid;
+  gap: 6px;
+}
+
+.compareResultSummary {
+  font-size: 14px;
+  color: #41537d !important;
+}
+
+.compareResultGrid {
+  margin-top: 12px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.compareSideCard {
+  border: 1px solid #dce6fb;
+  border-radius: 12px;
+  background: #f8fbff;
+  padding: 12px;
+}
+
+.compareSideHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.compareSideHeader h4 {
+  margin: 0;
+  font-size: 15px;
+  color: #1f2d58;
+}
+
+.compareSideHeader span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  height: 28px;
+  border-radius: 999px;
+  background: #e8f0ff;
+  color: #2147a4;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.compareSideMeta {
+  margin-top: 8px !important;
+  font-size: 13px;
+  color: #546585 !important;
+}
+
+.compareMismatchList {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  color: #243762;
+}
+
+.compareMismatchList li {
+  font-size: 14px;
+}
+
+.compareEmptyText {
+  margin-top: 10px !important;
+  font-size: 14px;
+  color: #4d618d !important;
+}
+
 .compareResultBox pre {
   margin: 8px 0 0;
   white-space: pre-wrap;
@@ -391,7 +465,8 @@
 
 @media (max-width: 980px) {
   .uploadGrid,
-  .mappingGrid {
+  .mappingGrid,
+  .compareResultGrid {
     grid-template-columns: 1fr;
   }
 }

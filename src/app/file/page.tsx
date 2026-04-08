@@ -26,6 +26,11 @@ type CompareColumnPair = {
 	rightColumn: string;
 };
 
+type CompareApiResult = {
+	onlyInFile1: string[];
+	onlyInFile2: string[];
+};
+
 function createUploadSlot(id: number): UploadSlotState {
 	return {
 		id,
@@ -65,6 +70,33 @@ function normalizeSheetResponse(data: unknown): SheetHeaderItem[] {
 			};
 		})
 		.filter((item) => item.sheetName.trim().length > 0);
+}
+
+function normalizeStringArray(data: unknown): string[] {
+	if (!Array.isArray(data)) {
+		return [];
+	}
+
+	return data
+		.filter((item): item is string | number => typeof item === "string" || typeof item === "number")
+		.map((item) => String(item));
+}
+
+function normalizeCompareResponse(data: unknown): CompareApiResult | null {
+	if (typeof data !== "object" || data === null) {
+		return null;
+	}
+
+	const payload = data as { onlyInFile1?: unknown; onlyInFile2?: unknown };
+
+	return {
+		onlyInFile1: normalizeStringArray(payload.onlyInFile1),
+		onlyInFile2: normalizeStringArray(payload.onlyInFile2),
+	};
+}
+
+function formatMismatchValue(value: string): string {
+	return /^\d+$/.test(value) ? `Dòng ${value}` : value;
 }
 
 export default function FileComparePage() {
@@ -323,6 +355,16 @@ export default function FileComparePage() {
 			completedPairs.length > 0 &&
 			!hasIncompletePair,
 	);
+
+	const normalizedCompareResult = useMemo(() => normalizeCompareResponse(compareResult), [compareResult]);
+	const leftUnmatchedRows = normalizedCompareResult?.onlyInFile1 ?? [];
+	const rightUnmatchedRows = normalizedCompareResult?.onlyInFile2 ?? [];
+	const leftSourceDescription = [leftSlot?.fileName, effectiveLeftSheetName ? `Sheet: ${effectiveLeftSheetName}` : ""]
+		.filter(Boolean)
+		.join(" | ");
+	const rightSourceDescription = [rightSlot?.fileName, effectiveRightSheetName ? `Sheet: ${effectiveRightSheetName}` : ""]
+		.filter(Boolean)
+		.join(" | ");
 
 	const handleCompareFiles = async () => {
 		if (!canCompare || !leftSlot?.file || !rightSlot?.file) {
@@ -655,8 +697,61 @@ export default function FileComparePage() {
 					{compareError && <p className={styles.compareErrorText}>{compareError}</p>}
 					{compareResult !== null && (
 						<div className={styles.compareResultBox}>
-							<p><strong>Kết quả API:</strong></p>
-							<pre>{JSON.stringify(compareResult, null, 2)}</pre>
+							{normalizedCompareResult ? (
+								<>
+									<div className={styles.compareResultHeader}>
+										<p><strong>Kết quả đối soát:</strong></p>
+										<p className={styles.compareResultSummary}>
+											Bên trái có {leftUnmatchedRows.length} dòng chưa khớp, bên phải có {rightUnmatchedRows.length} dòng chưa khớp.
+										</p>
+									</div>
+
+									<div className={styles.compareResultGrid}>
+										<article className={styles.compareSideCard}>
+											<div className={styles.compareSideHeader}>
+												<h4>Không khớp bên trái</h4>
+												<span>{leftUnmatchedRows.length} dòng</span>
+											</div>
+											{leftSourceDescription && (
+												<p className={styles.compareSideMeta}>{leftSourceDescription}</p>
+											)}
+											{leftUnmatchedRows.length > 0 ? (
+												<ul className={styles.compareMismatchList}>
+													{leftUnmatchedRows.map((value, index) => (
+														<li key={`left-mismatch-${value}-${index}`}>{formatMismatchValue(value)}</li>
+													))}
+												</ul>
+											) : (
+												<p className={styles.compareEmptyText}>Không có dòng lỗi ở bên trái.</p>
+											)}
+										</article>
+
+										<article className={styles.compareSideCard}>
+											<div className={styles.compareSideHeader}>
+												<h4>Không khớp bên phải</h4>
+												<span>{rightUnmatchedRows.length} dòng</span>
+											</div>
+											{rightSourceDescription && (
+												<p className={styles.compareSideMeta}>{rightSourceDescription}</p>
+											)}
+											{rightUnmatchedRows.length > 0 ? (
+												<ul className={styles.compareMismatchList}>
+													{rightUnmatchedRows.map((value, index) => (
+														<li key={`right-mismatch-${value}-${index}`}>{formatMismatchValue(value)}</li>
+													))}
+												</ul>
+											) : (
+												<p className={styles.compareEmptyText}>Không có dòng lỗi ở bên phải.</p>
+											)}
+										</article>
+									</div>
+								</>
+							) : (
+								<>
+									<p><strong>Kết quả API:</strong></p>
+									<pre>{JSON.stringify(compareResult, null, 2)}</pre>
+								</>
+							)}
 						</div>
 					)}
 				</div>
