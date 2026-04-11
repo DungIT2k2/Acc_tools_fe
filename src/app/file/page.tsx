@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { type ChangeEvent, useEffect, useMemo, useState } from "react";
+import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import callApi, { getErrorMessageAsync } from "@/src/lib/axios";
 import styles from "../../styles/fileCompare.module.css";
@@ -24,11 +24,16 @@ type CompareColumnPair = {
 	id: number;
 	leftColumn: string;
 	rightColumn: string;
+	like: boolean;
 };
 
 type CompareApiResult = {
-	onlyInFile1: string[];
-	onlyInFile2: string[];
+	onlyInFile1: Record<string, unknown>[];
+	onlyInFile2: Record<string, unknown>[];
+};
+
+type ExportRecordResponse = {
+	record?: string;
 };
 
 function createUploadSlot(id: number): UploadSlotState {
@@ -48,6 +53,7 @@ function createCompareColumnPair(id: number): CompareColumnPair {
 		id,
 		leftColumn: "",
 		rightColumn: "",
+		like: false,
 	};
 }
 
@@ -72,16 +78,6 @@ function normalizeSheetResponse(data: unknown): SheetHeaderItem[] {
 		.filter((item) => item.sheetName.trim().length > 0);
 }
 
-function normalizeStringArray(data: unknown): string[] {
-	if (!Array.isArray(data)) {
-		return [];
-	}
-
-	return data
-		.filter((item): item is string | number => typeof item === "string" || typeof item === "number")
-		.map((item) => String(item));
-}
-
 function normalizeCompareResponse(data: unknown): CompareApiResult | null {
 	if (typeof data !== "object" || data === null) {
 		return null;
@@ -89,14 +85,88 @@ function normalizeCompareResponse(data: unknown): CompareApiResult | null {
 
 	const payload = data as { onlyInFile1?: unknown; onlyInFile2?: unknown };
 
+	const toObjectArray = (arr: unknown): Record<string, unknown>[] => {
+		if (!Array.isArray(arr)) return [];
+		return arr.filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null);
+	};
+
 	return {
-		onlyInFile1: normalizeStringArray(payload.onlyInFile1),
-		onlyInFile2: normalizeStringArray(payload.onlyInFile2),
+		onlyInFile1: toObjectArray(payload.onlyInFile1),
+		onlyInFile2: toObjectArray(payload.onlyInFile2),
 	};
 }
 
-function formatMismatchValue(value: string): string {
-	return /^\d+$/.test(value) ? `Dòng ${value}` : value;
+function getRecordFromCompareResponse(data: unknown): unknown {
+	if (typeof data !== "object" || data === null) {
+		return null;
+	}
+
+	const payload = data as ExportRecordResponse;
+	return payload.record ?? null;
+}
+
+function formatCountdown(ms: number): string {
+	if (ms <= 0) {
+		return "00:00";
+	}
+
+	const totalSeconds = Math.ceil(ms / 1000);
+	const minutes = Math.floor(totalSeconds / 60);
+	const seconds = totalSeconds % 60;
+
+	return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function getFileNameFromDisposition(disposition?: string): string {
+	if (!disposition) {
+		return `compare-result-${Date.now()}.xlsx`;
+	}
+
+	const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+	if (utf8Match?.[1]) {
+		return decodeURIComponent(utf8Match[1]);
+	}
+
+	const plainMatch = disposition.match(/filename="?([^";]+)"?/i);
+	if (plainMatch?.[1]) {
+		return plainMatch[1];
+	}
+
+	return `compare-result-${Date.now()}.xlsx`;
+}
+
+function useDragScroll() {
+	const ref = useRef<HTMLDivElement>(null);
+	const isDragging = useRef(false);
+	const startX = useRef(0);
+	const scrollLeft = useRef(0);
+
+	const onMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+		const el = ref.current;
+		if (!el) return;
+		isDragging.current = true;
+		startX.current = e.pageX - el.offsetLeft;
+		scrollLeft.current = el.scrollLeft;
+		el.style.cursor = "grabbing";
+		el.style.userSelect = "none";
+	}, []);
+
+	const onMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+		if (!isDragging.current || !ref.current) return;
+		e.preventDefault();
+		const x = e.pageX - ref.current.offsetLeft;
+		const walk = x - startX.current;
+		ref.current.scrollLeft = scrollLeft.current - walk;
+	}, []);
+
+	const onMouseUp = useCallback(() => {
+		if (!ref.current) return;
+		isDragging.current = false;
+		ref.current.style.cursor = "grab";
+		ref.current.style.userSelect = "";
+	}, []);
+
+	return { ref, onMouseDown, onMouseMove, onMouseUp, onMouseLeave: onMouseUp };
 }
 
 export default function FileComparePage() {
@@ -108,8 +178,12 @@ export default function FileComparePage() {
 	const [rightSheetName, setRightSheetName] = useState("");
 	const [compareColumnPairs, setCompareColumnPairs] = useState<CompareColumnPair[]>([createCompareColumnPair(1)]);
 	const [isComparing, setIsComparing] = useState(false);
+	const [isExporting, setIsExporting] = useState(false);
 	const [compareError, setCompareError] = useState("");
 	const [compareResult, setCompareResult] = useState<unknown>(null);
+	const [exportError, setExportError] = useState("");
+	const [exportAvailableUntil, setExportAvailableUntil] = useState<number | null>(null);
+	const [countdownNow, setCountdownNow] = useState<number>(() => Date.now());
 
 	const uploadedSlots = useMemo(() => uploadSlots.filter((slot) => slot.file), [uploadSlots]);
 	const canAddMoreSlot = uploadSlots.length < 2;
@@ -306,6 +380,8 @@ export default function FileComparePage() {
 			const nextId = (prev[prev.length - 1]?.id ?? 0) + 1;
 			return [...prev, createCompareColumnPair(nextId)];
 		});
+		setCompareResult(null);
+		setCompareError("");
 	};
 
 	const handleRemoveColumnPair = (pairId: number) => {
@@ -316,6 +392,8 @@ export default function FileComparePage() {
 
 			return prev.filter((pair) => pair.id !== pairId);
 		});
+		setCompareResult(null);
+		setCompareError("");
 	};
 
 	const updateColumnPair = (pairId: number, side: "left" | "right", value: string) => {
@@ -332,6 +410,16 @@ export default function FileComparePage() {
 				return { ...pair, rightColumn: value };
 			}),
 		);
+		setCompareResult(null);
+		setCompareError("");
+	};
+
+	const updateColumnPairLike = (pairId: number, checked: boolean) => {
+		setCompareColumnPairs((prev) =>
+			prev.map((pair) => (pair.id === pairId ? { ...pair, like: checked } : pair)),
+		);
+		setCompareResult(null);
+		setCompareError("");
 	};
 
 	const getAvailableHeadersForPair = (pairId: number, side: "left" | "right") => {
@@ -356,15 +444,73 @@ export default function FileComparePage() {
 			!hasIncompletePair,
 	);
 
+	const dragLeft = useDragScroll();
+	const dragRight = useDragScroll();
+
 	const normalizedCompareResult = useMemo(() => normalizeCompareResponse(compareResult), [compareResult]);
+	const compareRecord = useMemo(() => getRecordFromCompareResponse(compareResult), [compareResult]);
 	const leftUnmatchedRows = normalizedCompareResult?.onlyInFile1 ?? [];
 	const rightUnmatchedRows = normalizedCompareResult?.onlyInFile2 ?? [];
+	const leftResultColumns = useMemo(
+		() =>
+			completedPairs.length > 0
+				? completedPairs.map((p) => p.leftColumn)
+				: leftUnmatchedRows.length > 0
+					? Object.keys(leftUnmatchedRows[0])
+					: [],
+		[completedPairs, leftUnmatchedRows],
+	);
+	const rightResultColumns = useMemo(
+		() =>
+			completedPairs.length > 0
+				? completedPairs.map((p) => p.rightColumn)
+				: rightUnmatchedRows.length > 0
+					? Object.keys(rightUnmatchedRows[0])
+					: [],
+		[completedPairs, rightUnmatchedRows],
+	);
 	const leftSourceDescription = [leftSlot?.fileName, effectiveLeftSheetName ? `Sheet: ${effectiveLeftSheetName}` : ""]
 		.filter(Boolean)
 		.join(" | ");
 	const rightSourceDescription = [rightSlot?.fileName, effectiveRightSheetName ? `Sheet: ${effectiveRightSheetName}` : ""]
 		.filter(Boolean)
 		.join(" | ");
+	const remainingExportMs = useMemo(() => {
+		if (!exportAvailableUntil) {
+			return 0;
+		}
+
+		return Math.max(exportAvailableUntil - countdownNow, 0);
+	}, [countdownNow, exportAvailableUntil]);
+	const isExportWindowActive = remainingExportMs > 0;
+	const canExport = Boolean(compareRecord) && isExportWindowActive && !isComparing;
+	const exportCountdownText = formatCountdown(remainingExportMs);
+
+	useEffect(() => {
+		if (!exportAvailableUntil) {
+			return;
+		}
+
+		const timer = window.setInterval(() => {
+			setCountdownNow(Date.now());
+		}, 1000);
+
+		return () => {
+			window.clearInterval(timer);
+		};
+	}, [exportAvailableUntil]);
+
+	useEffect(() => {
+		if (exportAvailableUntil && Date.now() >= exportAvailableUntil) {
+			setExportAvailableUntil(null);
+		}
+	}, [countdownNow, exportAvailableUntil]);
+
+	useEffect(() => {
+		if (compareResult === null) {
+			setExportAvailableUntil(null);
+		}
+	}, [compareResult]);
 
 	const handleCompareFiles = async () => {
 		if (!canCompare || !leftSlot?.file || !rightSlot?.file) {
@@ -375,7 +521,9 @@ export default function FileComparePage() {
 		try {
 			setIsComparing(true);
 			setCompareError("");
+			setExportError("");
 			setCompareResult(null);
+			setExportAvailableUntil(null);
 
 			const formData = new FormData();
 			const appendedFileIds = new Set<number>();
@@ -398,6 +546,7 @@ export default function FileComparePage() {
 				mapping: completedPairs.map((pair) => ({
 					file1: pair.leftColumn,
 					file2: pair.rightColumn,
+					...(pair.like ? { like: true } : {}),
 				})),
 			};
 
@@ -410,11 +559,50 @@ export default function FileComparePage() {
 			});
 
 			setCompareResult(response.data);
+			setCountdownNow(Date.now());
+			setExportAvailableUntil(Date.now() + 5 * 60 * 1000);
 		} catch (error) {
 			const message = await getErrorMessageAsync(error, "So sánh file thất bại.");
 			setCompareError(message);
+			setExportAvailableUntil(null);
 		} finally {
 			setIsComparing(false);
+		}
+	};
+
+	const handleExportCompareResult = async () => {
+		if (!canExport) {
+			return;
+		}
+
+		try {
+			setIsExporting(true);
+			setExportError("");
+
+			const response = await callApi.post<Blob>(
+				"/file/exportCompareResult",
+				{
+					record: compareRecord,
+					sheetNames: [effectiveLeftSheetName, effectiveRightSheetName],
+				},
+				{
+					responseType: "blob",
+				},
+			);
+
+			const blobUrl = window.URL.createObjectURL(response.data);
+			const downloadLink = document.createElement("a");
+			downloadLink.href = blobUrl;
+			downloadLink.download = getFileNameFromDisposition(response.headers["content-disposition"]);
+			document.body.appendChild(downloadLink);
+			downloadLink.click();
+			downloadLink.remove();
+			window.URL.revokeObjectURL(blobUrl);
+		} catch (error) {
+			const message = await getErrorMessageAsync(error, "Xuất kết quả thất bại.");
+			setExportError(message);
+		} finally {
+			setIsExporting(false);
 		}
 	};
 
@@ -639,6 +827,14 @@ export default function FileComparePage() {
 										</option>
 									))}
 								</select>
+								<label className={styles.likeCheckbox}>
+									<input
+										type="checkbox"
+										checked={pair.like}
+										onChange={(event) => updateColumnPairLike(pair.id, event.target.checked)}
+									/>
+									<span>Gần giống</span>
+								</label>
 								{compareColumnPairs.length > 1 && (
 									<button
 										type="button"
@@ -662,7 +858,7 @@ export default function FileComparePage() {
 						<ul className={styles.summaryList}>
 							{completedPairs.map((pair, index) => (
 								<li key={`summary-${pair.id}`}>
-									Cặp {index + 1}: [{effectiveLeftSheetName || "-"}] {pair.leftColumn} ↔ [{effectiveRightSheetName || "-"}] {pair.rightColumn}
+									Cặp {index + 1}: [{effectiveLeftSheetName || "-"}] {pair.leftColumn} ↔ [{effectiveRightSheetName || "-"}] {pair.rightColumn}{pair.like ? " (Gần giống)" : ""}
 								</li>
 							))}
 						</ul>
@@ -692,9 +888,26 @@ export default function FileComparePage() {
 						>
 							{isComparing ? "Đang so sánh..." : "So sánh"}
 						</button>
+						<button
+							type="button"
+							className={styles.exportButton}
+							onClick={() => void handleExportCompareResult()}
+							disabled={!canExport || isExporting}
+						>
+							{isExporting ? "Đang xuất..." : "Xuất kết quả"}
+						</button>
 					</div>
 
+					{Boolean(compareRecord) && (
+						<p className={styles.exportHintText}>
+							{isExportWindowActive
+								? `Xuất kết quả còn hiệu lực trong ${exportCountdownText}.`
+								: "Xuất kết quả đã hết hạn sau 5 phút kể từ lần so sánh gần nhất."}
+						</p>
+					)}
+
 					{compareError && <p className={styles.compareErrorText}>{compareError}</p>}
+					{exportError && <p className={styles.compareErrorText}>{exportError}</p>}
 					{compareResult !== null && (
 						<div className={styles.compareResultBox}>
 							{normalizedCompareResult ? (
@@ -716,11 +929,37 @@ export default function FileComparePage() {
 												<p className={styles.compareSideMeta}>{leftSourceDescription}</p>
 											)}
 											{leftUnmatchedRows.length > 0 ? (
-												<ul className={styles.compareMismatchList}>
-													{leftUnmatchedRows.map((value, index) => (
-														<li key={`left-mismatch-${value}-${index}`}>{formatMismatchValue(value)}</li>
-													))}
-												</ul>
+												<div
+												    ref={dragLeft.ref}
+												    className={styles.mismatchTableWrap}
+												    onMouseDown={dragLeft.onMouseDown}
+												    onMouseMove={dragLeft.onMouseMove}
+												    onMouseUp={dragLeft.onMouseUp}
+												    onMouseLeave={dragLeft.onMouseLeave}
+												>
+													<table className={styles.mismatchTable}>
+														<thead>
+															<tr>
+																<th className={styles.mismatchTh}>#</th>
+																{leftResultColumns.map((col) => (
+																	<th key={col} className={styles.mismatchTh}>{col}</th>
+																))}
+															</tr>
+														</thead>
+														<tbody>
+															{leftUnmatchedRows.map((row, index) => (
+																<tr key={`left-mismatch-${index}`}>
+																	<td className={styles.mismatchIndexTd}>{index + 1}</td>
+																	{leftResultColumns.map((col) => (
+																		<td key={col} className={styles.mismatchTd}>
+																			{row[col] !== undefined && row[col] !== null && row[col] !== "" ? String(row[col]) : "-"}
+																		</td>
+																	))}
+																</tr>
+															))}
+														</tbody>
+													</table>
+												</div>
 											) : (
 												<p className={styles.compareEmptyText}>Không có dòng lỗi ở bên trái.</p>
 											)}
@@ -735,11 +974,37 @@ export default function FileComparePage() {
 												<p className={styles.compareSideMeta}>{rightSourceDescription}</p>
 											)}
 											{rightUnmatchedRows.length > 0 ? (
-												<ul className={styles.compareMismatchList}>
-													{rightUnmatchedRows.map((value, index) => (
-														<li key={`right-mismatch-${value}-${index}`}>{formatMismatchValue(value)}</li>
-													))}
-												</ul>
+												<div
+												    ref={dragRight.ref}
+												    className={styles.mismatchTableWrap}
+												    onMouseDown={dragRight.onMouseDown}
+												    onMouseMove={dragRight.onMouseMove}
+												    onMouseUp={dragRight.onMouseUp}
+												    onMouseLeave={dragRight.onMouseLeave}
+												>
+													<table className={styles.mismatchTable}>
+														<thead>
+															<tr>
+																<th className={styles.mismatchTh}>#</th>
+																{rightResultColumns.map((col) => (
+																	<th key={col} className={styles.mismatchTh}>{col}</th>
+																))}
+															</tr>
+														</thead>
+														<tbody>
+															{rightUnmatchedRows.map((row, index) => (
+																<tr key={`right-mismatch-${index}`}>
+																	<td className={styles.mismatchIndexTd}>{index + 1}</td>
+																	{rightResultColumns.map((col) => (
+																		<td key={col} className={styles.mismatchTd}>
+																			{row[col] !== undefined && row[col] !== null && row[col] !== "" ? String(row[col]) : "-"}
+																		</td>
+																	))}
+																</tr>
+															))}
+														</tbody>
+													</table>
+												</div>
 											) : (
 												<p className={styles.compareEmptyText}>Không có dòng lỗi ở bên phải.</p>
 											)}

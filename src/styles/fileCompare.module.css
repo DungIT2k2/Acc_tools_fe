@@ -283,7 +283,7 @@
 
 .columnPairRow {
   display: grid;
-  grid-template-columns: 70px 1fr 30px 1fr auto;
+  grid-template-columns: 70px 1fr 30px 1fr 110px auto;
   align-items: center;
   gap: 8px;
 }
@@ -319,6 +319,21 @@
   cursor: pointer;
 }
 
+.likeCheckbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #33466f;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.likeCheckbox input {
+  width: 16px;
+  height: 16px;
+  accent-color: #1d4ed8;
+}
+
 .summaryList {
   margin: 8px 0 0;
   padding-left: 18px;
@@ -342,6 +357,10 @@
 
 .compareActionRow {
   margin-top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .compareButton {
@@ -359,6 +378,31 @@
 .compareButton:disabled {
   background: #94a3b8;
   cursor: not-allowed;
+}
+
+.exportButton {
+  min-width: 140px;
+  height: 40px;
+  border: 1px solid #9cb6eb;
+  border-radius: 10px;
+  padding: 0 16px;
+  background: #edf4ff;
+  color: #1f4291;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.exportButton:disabled {
+  border-color: #cbd5e1;
+  background: #eef2f7;
+  color: #7c8aa5;
+  cursor: not-allowed;
+}
+
+.exportHintText {
+  margin-top: 8px !important;
+  font-size: 13px;
+  color: #3d548a !important;
 }
 
 .compareErrorText {
@@ -447,6 +491,59 @@
   margin-top: 10px !important;
   font-size: 14px;
   color: #4d618d !important;
+}
+
+.mismatchTableWrap {
+  margin-top: 10px;
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #dde8fb;
+  cursor: grab;
+  scrollbar-width: none;
+}
+
+.mismatchTableWrap::-webkit-scrollbar {
+  display: none;
+}
+
+.mismatchTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.mismatchTh {
+  background: #eef4ff;
+  color: #1f2d58;
+  font-weight: 700;
+  padding: 7px 10px;
+  text-align: left;
+  border-bottom: 1px solid #d5e0f5;
+  white-space: nowrap;
+}
+
+.mismatchIndexTd {
+  padding: 6px 8px;
+  border-bottom: 1px solid #edf2fc;
+  color: #8a9bbf;
+  font-size: 12px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.mismatchTd {
+  padding: 6px 10px;
+  border-bottom: 1px solid #edf2fc;
+  color: #243762;
+  word-break: break-word;
+}
+
+.mismatchTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.mismatchTable tbody tr:nth-child(even) {
+  background: #f7faff;
 }
 
 .compareResultBox pre {
