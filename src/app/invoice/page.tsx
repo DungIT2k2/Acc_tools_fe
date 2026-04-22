@@ -998,10 +998,28 @@ export default function InvoicePage() {
                 },
             });
 
+            const responseData = res.data as {
+                statusCode?: number | string;
+                message?: unknown;
+                error?: unknown;
+            };
+            const responseStatusCode = Number(responseData?.statusCode);
+
+            if (responseStatusCode === 500) {
+                setPurchaseError("Gặp lỗi khi đối soát với bảng kê. Vui lòng liên hệ quản trị viên");
+                return;
+            }
+
             setCompareResultData(res.data as CompareResultData);
         } catch (err: unknown) {
-            const message = await getErrorMessageAsync(err, "Đối soát dữ liệu thất bại");
-            setPurchaseError(message);
+            const statusCode = Number((err as { response?: { status?: number | string }; status?: number | string })?.response?.status
+                ?? (err as { status?: number | string })?.status);
+            if (statusCode === 500) {
+                setPurchaseError("Gặp lỗi khi đối soát với bảng kê. Vui lòng liên hệ quản trị viên");
+            } else {
+                const message = await getErrorMessageAsync(err, "Đối soát dữ liệu thất bại");
+                setPurchaseError(message);
+            }
         } finally {
             setIsComparingPurchase(false);
             setComparePurchaseContext(null);
