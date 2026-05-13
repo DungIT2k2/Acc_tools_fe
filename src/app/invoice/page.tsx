@@ -517,7 +517,7 @@ export default function InvoicePage() {
 
     const loadCaptcha = useCallback(async () => {
         try {
-            const res = await apiTax.get("/captcha");
+            const res = await apiTax.get("/api/captcha");
             setCaptchaSvg(res.data.content);
             setCaptchaKey(res.data.key);
         } catch (err) {

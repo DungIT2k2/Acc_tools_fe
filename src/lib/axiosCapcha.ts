@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Tạo instance Axios
 const apiTax = axios.create({
-    baseURL: "https://hoadondientu.gdt.gov.vn:30000",
+    baseURL: "https://hoadondientu.gdt.gov.vn",
     timeout: 60000,
     headers: {
         "Content-Type": "application/json",
