@@ -1,0 +1,166 @@
+.page {
+  min-height: 100vh;
+  background: #f4f6fb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.card {
+  width: 100%;
+  max-width: 520px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e3e8f2;
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.08);
+  padding: 36px 32px;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 6px 0;
+  text-align: center;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: #64748b;
+  text-align: center;
+  margin: 0 0 28px 0;
+}
+
+.dropZone {
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 36px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  background: #f8fafc;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.dropZone:hover,
+.dropZoneActive {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.dropZoneHasFile {
+  border-color: #22c55e;
+  background: #f0fdf4;
+}
+
+.dropZoneIcon {
+  font-size: 40px;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.dropZoneText {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+}
+
+.dropZoneFileName {
+  font-size: 14px;
+  font-weight: 600;
+  color: #16a34a;
+  margin: 6px 0 0 0;
+  word-break: break-all;
+}
+
+.fileInput {
+  display: none;
+}
+
+.clearBtn {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  color: #94a3b8;
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 6px;
+  transition: color 0.15s;
+}
+
+.clearBtn:hover {
+  color: #ef4444;
+}
+
+.submitBtn {
+  width: 100%;
+  padding: 13px;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: #ffffff;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.submitBtn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.submitBtn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.submitBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.errorMsg {
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #dc2626;
+  font-size: 13px;
+  text-align: center;
+}
+
+.successMsg {
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  color: #16a34a;
+  font-size: 13px;
+  text-align: center;
+}

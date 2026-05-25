@@ -30,11 +30,11 @@ export default function MenuPage() {
             path: "/invoice",
             icon: "🧾",
         },
-        // {
-        //     name: "Chức năng 3",
-        //     path: "/module-3",
-        //     icon: "📁",
-        // },
+        {
+            name: "Chuyển mã file excel",
+            path: "/transcoding",
+            icon: "🔄",
+        },
         // {
         //     name: "Chức năng 4",
         //     path: "/module-4",
