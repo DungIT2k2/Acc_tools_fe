@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import styles from "../../styles/transcoding.module.css";
 import callApi from "@/src/lib/axios";
 
@@ -11,6 +12,7 @@ export default function TranscodingPage() {
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    const router = useRouter();
 
     const handleFileChange = useCallback((selected: File | null) => {
         setError(null);
@@ -117,6 +119,9 @@ export default function TranscodingPage() {
     return (
         <div className={styles.page}>
             <div className={styles.card}>
+                <button className={styles.backBtn} onClick={() => router.push("/menu")}>
+                    ← Quay lại menu
+                </button>
                 <h1 className={styles.title}>Chuyển mã Excel</h1>
                 <p className={styles.subtitle}>Import file Excel và chuyển mã ngay lập tức</p>
 

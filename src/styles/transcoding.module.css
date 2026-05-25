@@ -1,5 +1,6 @@
 .page {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background: #f4f6fb;
   display: flex;
   align-items: center;
@@ -15,6 +16,25 @@
   border: 1px solid #e3e8f2;
   box-shadow: 0 14px 36px rgba(15, 23, 42, 0.08);
   padding: 36px 32px;
+}
+
+.backBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 20px;
+  transition: color 0.15s;
+}
+
+.backBtn:hover {
+  color: #3b82f6;
 }
 
 .title {
