@@ -1,4 +1,9 @@
+import type { Metadata } from "next";
 import ConnectionStatus from "../components/ConnectionStatus";
+
+export const metadata: Metadata = {
+  title: "Tools Kế Toán",
+};
 
 export default function RootLayout({
   children,
