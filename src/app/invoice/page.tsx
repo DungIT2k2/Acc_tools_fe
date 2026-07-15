@@ -6,6 +6,7 @@ import apiTax from "@/src/lib/axiosCapcha";
 import callApi, { getErrorMessageAsync } from "@/src/lib/axios";
 import { decodeTokenPayload } from "@/src/lib/jwt";
 import { DynamicTable, type DynamicTableColumn } from "@/src/components/DynamicTable";
+import InvoiceViewer from "@/src/components/InvoiceViewer";
 import { useRouter } from "next/navigation";
 
 type InvoiceRow = {
@@ -25,6 +26,7 @@ type InvoiceRow = {
     tgtttbso: number;
     tthai: string;
     diengiai?: string;
+    action?: unknown;
 };
 
 type InvoiceSectionError = {
@@ -500,16 +502,89 @@ export default function InvoicePage() {
         cashRegister: false,
     });
     const [isMobileView, setIsMobileView] = useState(false);
+    const [isViewingInvoice, setIsViewingInvoice] = useState(false);
+    const [viewInvoiceHtml, setViewInvoiceHtml] = useState<string | null>(null);
+    const [viewInvoiceData, setViewInvoiceData] = useState<any | null>(null);
+    const [isLoadingViewInvoice, setIsLoadingViewInvoice] = useState(false);
+
+    const handleViewInvoice = useCallback(async (row: InvoiceRow) => {
+        try {
+            setIsViewingInvoice(true);
+            setIsLoadingViewInvoice(true);
+            setViewInvoiceHtml(null);
+            setViewInvoiceData(null);
+
+            const res = await callApi.get("/invoice/getDetailInvoice", {
+                params: {
+                    nbmst: row.nbmst,
+                    khhdon: row.khhdon,
+                    shdon: row.shdon,
+                    khmshdon: row.khmshdon,
+                },
+                responseType: "text",
+            });
+
+            const data = res.data;
+
+            if (typeof data === "string") {
+                const trimmed = data.trim();
+                if (trimmed.startsWith("<")) {
+                    setViewInvoiceHtml(data);
+                } else {
+                    try {
+                        const parsed = JSON.parse(data);
+                        setViewInvoiceData(parsed);
+                    } catch {
+                        setViewInvoiceHtml(data);
+                    }
+                }
+            } else if (typeof data === "object" && data !== null) {
+                setViewInvoiceData(data);
+            } else {
+                setViewInvoiceHtml(String(data ?? ""));
+            }
+        } catch (err: unknown) {
+            const message = await getErrorMessageAsync(err, "Không lấy được nội dung hoá đơn");
+            setPurchaseError(message);
+            setViewInvoiceHtml(null);
+            setViewInvoiceData(null);
+            setIsViewingInvoice(false);
+        } finally {
+            setIsLoadingViewInvoice(false);
+        }
+    }, []);
 
     const invoiceColumns = useMemo(() => {
-        return PURCHASE_INVOICE_COLUMNS.filter((column) => {
+        const cols = PURCHASE_INVOICE_COLUMNS.filter((column) => {
             if (column.field === "nmmst" || column.field === "nmten" || column.field === "nbmst" || column.field === "nbten" || column.field === "tgtphi") {
                 return hasFieldValueInData(invoiceData, column.field as keyof InvoiceRow);
             }
 
             return true;
         });
-    }, [invoiceData]);
+
+        // append action column with access to component scope handler
+        cols.push({
+            header: formatHeaderLabel("Thao tác"),
+            field: "action",
+            render: (_v, row) => (
+                <button
+                    type="button"
+                    onClick={() => void handleViewInvoice(row)}
+                    title="Xem hóa đơn"
+                    style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}
+                    aria-label="Xem hóa đơn"
+                >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 5C7 5 2.73 8.11 1 12c1.73 3.89 6 7 11 7s9.27-3.11 11-7c-1.73-3.89-6-7-11-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10z" fill="#333" />
+                        <circle cx="12" cy="12" r="2.5" fill="#333" />
+                    </svg>
+                </button>
+            ),
+        });
+
+        return cols;
+    }, [invoiceData, handleViewInvoice]);
     const compareFileInputRef = useRef<HTMLInputElement | null>(null);
     const passwordInputRef = useRef<HTMLInputElement | null>(null);
     const router = useRouter();
@@ -1531,6 +1606,38 @@ export default function InvoicePage() {
                                     )}
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
+            {isViewingInvoice ? (
+                <div className={styles.compareResultOverlay}>
+                    <div className={styles.compareResultModal} style={{ maxWidth: 900, width: "90%" }}>
+                        <div className={styles.compareResultHeader}>
+                            <h3>Xem hoá đơn</h3>
+                            <div className={styles.compareResultActions}>
+                                <button
+                                    type="button"
+                                    className={styles.compareResultCloseButton}
+                                    onClick={() => {
+                                        setIsViewingInvoice(false);
+                                        setViewInvoiceHtml(null);
+                                    }}
+                                >
+                                    Đóng
+                                </button>
+                            </div>
+                        </div>
+                        <div className={styles.compareResultBody} style={{ maxHeight: "70vh", overflow: "auto" }}>
+                            {isLoadingViewInvoice ? (
+                                <div>Đang tải...</div>
+                            ) : viewInvoiceHtml ? (
+                                <div dangerouslySetInnerHTML={{ __html: viewInvoiceHtml }} />
+                            ) : viewInvoiceData ? (
+                                <InvoiceViewer data={viewInvoiceData} />
+                            ) : (
+                                <div>Không có nội dung hoá đơn</div>
+                            )}
                         </div>
                     </div>
                 </div>
