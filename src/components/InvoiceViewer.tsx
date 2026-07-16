@@ -61,15 +61,15 @@ export default function InvoiceViewer({ data }: Props) {
           <div className={styles.invHeaderRight}>
             <div className={styles.metaRows}>
               <div className={styles.metaRow}><span className={styles.metaLabel}>Mẫu số</span><span className={styles.metaValue}>{modelNo || ""}</span></div>
-              <div className={styles.metaRow}><span className={styles.metaLabel}>Ký hiệu</span><span className={styles.metaValue}>{invoiceSeries || ""}</span></div>
-              <div className={styles.metaRow}><span className={styles.metaLabel}>Số</span><span className={styles.metaValue}>{invoiceNo || ""}</span></div>
+              <div className={styles.metaRow}><span className={styles.metaLabel}>Ký hiệu:</span><span className={styles.metaValue}>{invoiceSeries || ""}</span></div>
+              <div className={styles.metaRow}><span className={styles.metaLabel}>Số:</span><span className={styles.metaValue}>{invoiceNo || ""}</span></div>
             </div>
           </div>
         </div>
 
         <div className={styles.invHeaderBottom}>
           <div className={styles.titleBlock}>
-            <div className={styles.invoiceTitle}>HÓA ĐƠN GIÁ TRỊ GIA TĂNG</div>
+            <div className={styles.invoiceTitle}>HOÁ ĐƠN GIÁ TRỊ GIA TĂNG</div>
             <div className={styles.invoiceDate}>{formatDateLong(issueDate)}</div>
             <div className={styles.invoiceCQT}>MCCQT: {data.mhdon ?? ""}</div>
           </div>

@@ -1047,6 +1047,75 @@ export default function InvoicePage() {
         setCompareResultData(null);
     };
 
+    const handlePrintInvoice = () => {
+        const invoiceElement = document.querySelector(`.${styles.invoiceA4}`);
+        if (!invoiceElement) {
+            alert("Không tìm thấy nội dung hoá đơn để in");
+            return;
+        }
+
+        const printWindow = window.open("", "_blank");
+        if (!printWindow) {
+            alert("Vui lòng cho phép bật cửa sổ mới để in hoá đơn");
+            return;
+        }
+
+        // Collect all CSS from stylesheets
+        let allStyles = "";
+        try {
+            for (let i = 0; i < document.styleSheets.length; i++) {
+                try {
+                    const sheet = document.styleSheets[i] as CSSStyleSheet;
+                    if (sheet.cssRules) {
+                        for (let j = 0; j < sheet.cssRules.length; j++) {
+                            allStyles += sheet.cssRules[j].cssText + "\n";
+                        }
+                    }
+                } catch (e) {
+                    // Skip stylesheets that can't be accessed (cross-origin, etc)
+                }
+            }
+        } catch (e) {
+            console.warn("Could not access stylesheets");
+        }
+
+        const invoiceHtml = invoiceElement.innerHTML;
+
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html lang="vi">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>In hoá đơn</title>
+                <style>
+                    ${allStyles}
+                    @page {
+                        size: A4;
+                        margin: 0;
+                    }
+                    @media print {
+                        body {
+                            margin: 0;
+                            padding: 0;
+                        }
+                    }
+                </style>
+            </head>
+            <body>
+                ${invoiceHtml}
+            </body>
+            </html>
+        `);
+
+        printWindow.document.close();
+        
+        printWindow.onload = () => {
+            printWindow.focus();
+            printWindow.print();
+        };
+    };
+
     const handleConfirmComparePurchase = async () => {
         if (!comparePurchaseContext) {
             return;
@@ -1618,6 +1687,14 @@ export default function InvoicePage() {
                             <div className={styles.compareResultActions}>
                                 <button
                                     type="button"
+                                    className={styles.compareResultExportButton}
+                                    onClick={handlePrintInvoice}
+                                    title="In toàn bộ nội dung hoá đơn"
+                                >
+                                    In hoá đơn
+                                </button>
+                                <button
+                                    type="button"
                                     className={styles.compareResultCloseButton}
                                     onClick={() => {
                                         setIsViewingInvoice(false);
@@ -1628,7 +1705,7 @@ export default function InvoicePage() {
                                 </button>
                             </div>
                         </div>
-                        <div className={styles.compareResultBody} style={{ maxHeight: "70vh", overflow: "auto" }}>
+                        <div className={styles.compareResultBody} style={{ maxHeight: "100%", overflow: "auto", padding: "20px 20px 10px" }}>
                             {isLoadingViewInvoice ? (
                                 <div>Đang tải...</div>
                             ) : viewInvoiceHtml ? (
