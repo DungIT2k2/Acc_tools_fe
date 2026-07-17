@@ -1079,7 +1079,33 @@ export default function InvoicePage() {
             console.warn("Could not access stylesheets");
         }
 
-        const invoiceHtml = invoiceElement.innerHTML;
+        const clone = invoiceElement.cloneNode(true) as HTMLElement;
+
+        const applyResolvedBackgrounds = (source: Element, target: HTMLElement) => {
+            const bg = window.getComputedStyle(source).backgroundImage;
+            if (bg && bg !== "none") {
+                target.style.backgroundImage = bg;
+            }
+            for (let i = 0; i < source.children.length; i++) {
+                applyResolvedBackgrounds(source.children[i], target.children[i] as HTMLElement);
+            }
+        };
+        applyResolvedBackgrounds(invoiceElement, clone);
+        const liveCanvases = invoiceElement.querySelectorAll("canvas");
+        const clonedCanvases = clone.querySelectorAll("canvas");
+        liveCanvases.forEach((liveCanvas, idx) => {
+            const clonedCanvas = clonedCanvases[idx];
+            if (!clonedCanvas) return;
+            const img = document.createElement("img");
+            img.src = liveCanvas.toDataURL("image/png");
+            img.width = liveCanvas.width;
+            img.height = liveCanvas.height;
+            const styleAttr = clonedCanvas.getAttribute("style");
+            if (styleAttr) img.setAttribute("style", styleAttr);
+            clonedCanvas.replaceWith(img);
+        });
+
+        const invoiceHtml = clone.outerHTML;
 
         printWindow.document.write(`
             <!DOCTYPE html>
@@ -1087,12 +1113,16 @@ export default function InvoicePage() {
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <base href="${window.location.origin}/">
                 <title>In hoá đơn</title>
                 <style>
                     ${allStyles}
                     @page {
                         size: A4;
-                        margin: 0;
+                        margin: 5mm 0 0 0;
+                    }
+                    @page :first {
+                        margin-top: 0;
                     }
                     @media print {
                         body {
@@ -1363,7 +1393,7 @@ export default function InvoicePage() {
                                     <span>{table.count} dòng</span>
                                 </div>
                                 {!collapsedTables[collapseKey] ? (
-                                    <div className={styles.tableWrapper}>
+                                    <div className={styles.dataTableWrapper}>
                                         <DynamicTable
                                             columns={invoiceColumns}
                                             data={table.rows}

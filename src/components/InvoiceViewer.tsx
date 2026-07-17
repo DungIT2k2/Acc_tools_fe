@@ -48,6 +48,19 @@ export default function InvoiceViewer({ data }: Props) {
   const tax = formatCurrency(data.tgtthue ?? 0);
   const total = formatCurrency(data.tgtttbso ?? 0);
   const amountInWords = data.tgtttbchu ?? "";
+  const nbcksInfo = (() => {
+    try {
+      const parsed = JSON.parse(data.nbcks ?? "{}");
+      const subject: string = parsed.Subject ?? "";
+      const cnMatch = subject.match(/CN=([^,]+)/);
+      return {
+        cn: cnMatch ? cnMatch[1] : "",
+        signingTime: parsed.SigningTime ?? "",
+      };
+    } catch {
+      return { cn: "", signingTime: "" };
+    }
+  })();
 
   return (
     <div className={styles.invoiceA4}>
@@ -76,9 +89,8 @@ export default function InvoiceViewer({ data }: Props) {
         </div>
 
       </div>
-      <div className={styles.partySeparator} />
 
-      <div className={styles.sectionSeparator} />
+      <div className={styles.partySeparator} />
 
       <div className={styles.partySection}>
         {/* Seller block (stacked) */}
@@ -117,13 +129,17 @@ export default function InvoiceViewer({ data }: Props) {
             <div className={styles.label}>Địa chỉ: {buyerAddress}</div>
           </div>
           <div className={styles.infoRow}>
-            <div className={styles.label}>Số tài khoản: {data.nmstkhoan ?? ""}</div>
-          </div>
-          <div className={styles.infoRow}>
             <div className={styles.label}>Hình thức thanh toán: {buyerPayment}</div>
           </div>
           <div className={styles.infoRow}>
+            <div className={styles.label}>Số tài khoản: {data.nmstkhoan ?? ""}</div>
+          </div>
+          <div className={styles.infoRow}>
             <div className={styles.label}>Đơn vị tiền tệ: {currency}</div>
+          </div>
+          <div className={`${styles.infoRow} ${styles.infoRowInline}`}>
+            <div className={styles.label}>Số bảng kê: </div>
+            <div className={styles.label}>Ngày bảng kê: </div>
           </div>
         </div>
       </div>
@@ -231,12 +247,17 @@ export default function InvoiceViewer({ data }: Props) {
 
       <div className={styles.signatureArea}>
         <div className={styles.sigBlock}>
-          <div>NGUỜI MUA HÀNG</div>
-          <div>(Chữ ký số (nếu có))</div>
+          <div style={{ marginBottom: "1em" }}>NGUỜI MUA HÀNG</div>
+          <div style={{ fontSize: "14px", fontStyle: "italic" }}>(Chữ ký số (nếu có))</div>
         </div>
         <div className={styles.sigBlock}>
-          <div>NGUỜI BÁN HÀNG</div>
-          <div>(Chữ ký điện tử, chữ ký số)</div>
+          <div style={{ marginBottom: "1em" }}>NGUỜI BÁN HÀNG</div>
+          <div style={{ fontSize: "14px", fontStyle: "italic" }}>(Chữ ký điện tử, chữ ký số)</div>
+          <div className={styles.signBox}>
+            <div className={styles.signBoxLine}>Signature Valid</div>
+            <div className={styles.signBoxLine}>Ký bởi {nbcksInfo.cn}</div>
+            <div className={styles.signBoxLine}>Ký ngày: {nbcksInfo.signingTime}</div>
+          </div>
         </div>
       </div>
 
