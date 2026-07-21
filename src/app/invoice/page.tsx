@@ -1389,6 +1389,7 @@ export default function InvoicePage() {
                         const table = resolveSectionTable(invoiceData?.[section.key], "Chưa có dữ liệu hoá đơn này");
                         const collapseKey = getSectionKey(section.key);
                         const isScoSection = section.key === "invoiceCashRegisterData";
+                        const isSoldInvoiceFeature = featureConfig.id === 2;
 
                         return (
                             <div key={section.key} className={styles.tableSection}>
@@ -1407,7 +1408,7 @@ export default function InvoicePage() {
                                 {!collapsedTables[collapseKey] ? (
                                     <div className={styles.dataTableWrapper}>
                                         <DynamicTable
-                                            columns={buildInvoiceColumns(isScoSection)}
+                                            columns={isSoldInvoiceFeature ? baseInvoiceColumns : buildInvoiceColumns(isScoSection)}
                                             data={table.rows}
                                             emptyText={table.emptyText}
                                             tableClassName={styles.dataTable}
@@ -1752,7 +1753,7 @@ export default function InvoicePage() {
                         </div>
                         <div className={styles.compareResultBody} style={{ maxHeight: "100%", overflow: "auto", padding: "20px 20px 10px" }}>
                             {isLoadingViewInvoice ? (
-                                <div>Đang tải...</div>
+                                <div>Đang lấy dữ liệu từ thuế...</div>
                             ) : viewInvoiceError ? (
                                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "24px 0" }}>
                                     <div style={{ color: "#d32f2f" }}>{viewInvoiceError}</div>
@@ -1771,7 +1772,7 @@ export default function InvoicePage() {
                             ) : viewInvoiceHtml ? (
                                 <div dangerouslySetInnerHTML={{ __html: viewInvoiceHtml }} />
                             ) : viewInvoiceData ? (
-                                <InvoiceViewer data={viewInvoiceData} />
+                                <InvoiceViewer data={viewInvoiceData} isSco={viewInvoiceIsSco} />
                             ) : (
                                 <div>Không có nội dung hoá đơn</div>
                             )}

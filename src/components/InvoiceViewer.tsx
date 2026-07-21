@@ -2,39 +2,72 @@ import React from "react";
 import styles from "../styles/invoice.module.css";
 import { QRCodeCanvas } from "qrcode.react";
 
-type Props = { data: any };
+type Props = { data: any; isSco?: boolean };
+
+type ThueSuatItem = {
+  tsuat?: string | number | null;
+  thtien?: number | null;
+  tthue?: number | null;
+  gttsuat?: number | null;
+};
+
+type ListHoaDonDichVuItem = {
+  tchat?: string | number | null;
+  ten?: string | null;
+  description?: string | null;
+  dvtinh?: string | null;
+  dvtte?: string | null;
+  sluong?: number | null;
+  dgia?: number | null;
+  stckhau?: number | null;
+  ltsuat?: string | number | null;
+  tsuat?: string | number | null;
+  thtien?: number | null;
+};
 
 function formatCurrency(value: any) {
   const num = Number(value ?? 0);
   return new Intl.NumberFormat("vi-VN").format(Math.round(num));
 }
 
+const TCHAT_LABELS: Record<string, string> = {
+  "1": "Hàng hóa, dịch vụ",
+};
+
+function formatTchat(value?: string | number | null) {
+  if (value === null || value === undefined || value === "") return "";
+  return TCHAT_LABELS[String(value)] ?? String(value);
+}
+
 function formatDateLong(iso?: string) {
-  if (!iso) return "";
+  if (!iso) return null;
   try {
     const d = new Date(iso);
     const day = String(d.getDate()).padStart(2, "0");
     const month = String(d.getMonth() + 1).padStart(2, "0");
     const year = d.getFullYear();
-    return `Ngày ${day} tháng ${month} năm ${year}`;
+    return (
+      <>
+        Ngày <span className={styles.valueText}>{day}</span> tháng <span className={styles.valueText}>{month}</span> năm <span className={styles.valueText}>{year}</span>
+      </>
+    );
   } catch {
     return String(iso);
   }
 }
 
-export default function InvoiceViewer({ data }: Props) {
+export default function InvoiceViewer({ data, isSco }: Props) {
   if (!data) return <div>Không có dữ liệu hoá đơn</div>;
 
   const sellerName = data.nbten ?? data.nmten ?? "";
   const sellerMst = data.nbmst ?? "";
   const sellerAddress = data.nbdchi ?? data.nmdchi ?? "";
   const sellerPhone = data.nbsdthoai ?? data.nmsdthoai ?? "";
-  const sellerBank = data.nmstttoan ?? data.nmttttoan ?? "";
 
   const buyerName = data.nmten ?? "";
   const buyerMst = data.nmmst ?? "";
   const buyerAddress = data.nmdchi ?? "";
-  const buyerPayment = data.thtttoan ?? (data.tttbao === 1 ? "Chuyển khoản" : "Tiền mặt");
+  const buyerPayment = data.thtttoan ? (data.tttbao === 1 ? "Tiền mặt/Chuyển khoản" : "Tiền mặt") : "";
   const currency = data.dvtte ?? "VND";
 
   const invoiceSeries = data.khhdon ?? "";
@@ -42,12 +75,14 @@ export default function InvoiceViewer({ data }: Props) {
   const modelNo = data.khmshdon ?? "";
   const issueDate = data.tdlap ?? data.tgia ?? data.ntao ?? "";
 
-  const items = Array.isArray(data.hdhhdvu) ? data.hdhhdvu : [];
+  const listHoaDonDichVu: ListHoaDonDichVuItem[] = Array.isArray(data.hdhhdvu) ? data.hdhhdvu : [];
+  const sellerBank = `${data.nbstkhoan ?? ""} ${data.nbtnhang ?? ""}`;
 
   const subtotal = formatCurrency(data.tgtcthue ?? 0);
   const tax = formatCurrency(data.tgtthue ?? 0);
   const total = formatCurrency(data.tgtttbso ?? 0);
   const amountInWords = data.tgtttbchu ?? "";
+  const listThueSuat: ThueSuatItem[] = data.thttltsuat ?? data.thtttsuat ?? [];
   const nbcksInfo = (() => {
     try {
       const parsed = JSON.parse(data.nbcks ?? "{}");
@@ -96,19 +131,46 @@ export default function InvoiceViewer({ data }: Props) {
         {/* Seller block (stacked) */}
         <div className={styles.sellerBlock}>
           <div className={styles.infoRow}>
-            <div className={styles.label}>Tên người bán: {sellerName}</div>
+            <div className={styles.label}>
+              <span className={styles.labelText}>Tên người bán:</span>
+              <span className={styles.valueText}>{sellerName}</span>
+            </div>
           </div>
           <div className={styles.infoRow}>
-            <div className={styles.label}>Mã số thuế: {sellerMst}</div>
+            <div className={styles.label}>
+              <span className={styles.labelText}>Mã số thuế:</span>
+              <span className={styles.valueText}>{sellerMst}</span>
+            </div>
           </div>
           <div className={styles.infoRow}>
-            <div className={styles.label}>Địa chỉ: {sellerAddress}</div>
+            <div className={styles.label}>
+              <span className={styles.labelText}>Mã cửa hàng: </span>
+              <span className={styles.valueText}></span>
+            </div>
           </div>
           <div className={styles.infoRow}>
-            <div className={styles.label}>Điện thoại: {sellerPhone}</div>
+            <div className={styles.label}>
+              <span className={styles.labelText}>Tên cửa hàng: </span>
+              <span className={styles.valueText}></span>
+            </div>
           </div>
           <div className={styles.infoRow}>
-            <div className={styles.label}>Số tài khoản: {sellerBank}</div>
+            <div className={styles.label}>
+              <span className={styles.labelText}>Địa chỉ:</span>
+              <span className={styles.valueText}>{sellerAddress}</span>
+            </div>
+          </div>
+          <div className={styles.infoRow}>
+            <div className={styles.label}>
+              <span className={styles.labelText}>Điện thoại:</span>
+              <span className={styles.valueText}>{sellerPhone}</span>
+            </div>
+          </div>
+          <div className={styles.infoRow}>
+            <div className={styles.label}>
+              <span className={styles.labelText}>Số tài khoản:</span>
+              <span className={styles.valueText}>{sellerBank}</span>
+            </div>
           </div>
         </div>
 
@@ -117,29 +179,74 @@ export default function InvoiceViewer({ data }: Props) {
         {/* Buyer block (stacked) */}
         <div className={styles.buyerBlock}>
           <div className={styles.infoRow}>
-            <div className={styles.label}>Tên người mua: {buyerName}</div>
+            <div className={styles.label}>
+              <span className={styles.labelText}>Tên người mua: </span>
+              <span className={styles.valueText}>{buyerName}</span>
+            </div>
           </div>
           <div className={styles.infoRow}>
-            <div className={styles.label}>Họ tên người mua hàng: {data.hotennguoinhan ?? ""}</div>
+            <div className={styles.label}>
+              <span className={styles.labelText}>Họ tên người mua hàng: </span>
+              <span className={styles.valueText}>{data.hotennguoinhan ?? ""}</span>
+            </div>
           </div>
           <div className={styles.infoRow}>
-            <div className={styles.label}>Mã số thuế: {buyerMst}</div>
+            <div className={styles.label}>
+              <span className={styles.labelText}>Mã số thuế: </span>
+              <span className={styles.valueText}>{buyerMst}</span>
+            </div>
           </div>
           <div className={styles.infoRow}>
-            <div className={styles.label}>Địa chỉ: {buyerAddress}</div>
+            <div className={styles.label}>
+              <span className={styles.labelText}>Mã ĐVCQHVNSNN: </span>
+              <span className={styles.valueText}>{data.madvchqhvnsnn ?? ""}</span>
+            </div>
           </div>
           <div className={styles.infoRow}>
-            <div className={styles.label}>Hình thức thanh toán: {buyerPayment}</div>
+            <div className={styles.label}>
+              <span className={styles.labelText}>CCCD người mua: </span>
+              <span className={styles.valueText}>{data.cccdnguoimua ?? ""}</span>
+            </div>
           </div>
           <div className={styles.infoRow}>
-            <div className={styles.label}>Số tài khoản: {data.nmstkhoan ?? ""}</div>
+            <div className={styles.label}>
+              <span className={styles.labelText}>Số hộ chiếu: </span>
+              <span className={styles.valueText}>{data.sohocchieu ?? ""}</span>
+            </div>
           </div>
           <div className={styles.infoRow}>
-            <div className={styles.label}>Đơn vị tiền tệ: {currency}</div>
+            <div className={styles.label}>
+              <span className={styles.labelText}>Địa chỉ:</span>
+              <span className={styles.valueText}>{buyerAddress}</span>
+            </div>
+          </div>
+          <div className={styles.infoRow}>
+            <div className={styles.label}>
+              <span className={styles.labelText}>Số tài khoản: </span>
+              <span className={styles.valueText}>{data.nmstkhoan ?? ""}</span>
+            </div>
+          </div>
+          <div className={styles.infoRow}>
+            <div className={styles.label}>
+              <span className={styles.labelText}>Hình thức thanh toán: </span>
+              <span className={styles.valueText}>{buyerPayment}</span>
+            </div>
+          </div>
+          <div className={styles.infoRow}>
+            <div className={styles.label}>
+              <span className={styles.labelText}>Đơn vị tiền tệ: </span>
+              <span className={styles.valueText}>{currency}</span>
+            </div>
           </div>
           <div className={`${styles.infoRow} ${styles.infoRowInline}`}>
-            <div className={styles.label}>Số bảng kê: </div>
-            <div className={styles.label}>Ngày bảng kê: </div>
+            <div className={styles.label}>
+              <span className={styles.labelText}>Số bảng kê: </span>
+              <span className={styles.valueText}>{data.sobangke ?? ""}</span>
+            </div>
+            <div className={styles.label}>
+              <span className={styles.labelText}>Ngày bảng kê: </span>
+              <span className={styles.valueText}>{data.ngaybangke ?? ""}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -149,35 +256,35 @@ export default function InvoiceViewer({ data }: Props) {
           <thead>
             <tr>
               <th style={{ width: 40 }}>STT</th>
-              <th style={{ width: 60 }}>Tính<br/>chất</th>
-              <th style={{ width: 90 }}>Loại<br/>hàng<br/>hoá<br/>đặc<br/>trưng</th>
+              <th style={{ width: 60 }}>Tính chất</th>
+              <th style={{ width: 90 }}>Loại hàng hoá đặc trưng</th>
               <th>Tên hàng hóa, dịch vụ</th>
-              <th style={{ width: 70 }}>Đơn<br/>vị<br/>tính</th>
-              <th style={{ width: 70 }}>Số<br/>lượng</th>
-              <th style={{ width: 110 }}>Đơn<br/>giá</th>
-              <th style={{ width: 80 }}>Chiết<br/>khấu</th>
-              <th style={{ width: 70 }}>Thuế<br/>suất</th>
-              <th style={{ width: 140 }}>Thành tiền<br/>chưa có thuế<br/>GTGT</th>
+              <th style={{ width: 70 }}>Đơn vị tính</th>
+              <th style={{ width: 70 }}>Số lượng</th>
+              <th className={styles.colFit}>Đơn giá</th>
+              <th style={{ width: 80 }}>Chiết khấu</th>
+              <th style={{ width: 70 }}>Thuế suất</th>
+              <th className={styles.colFit} style={{ minWidth: 100 }}>Thành tiền chưa có thuế GTGT</th>
             </tr>
           </thead>
           <tbody>
-            {items.length === 0 ? (
+            {listHoaDonDichVu.length === 0 ? (
               <tr>
                 <td colSpan={10} style={{ textAlign: "center", padding: 8 }}>Không có mặt hàng</td>
               </tr>
             ) : (
-              items.map((it: any, idx: number) => (
+              listHoaDonDichVu.map((it, idx) => (
                 <tr key={idx}>
                   <td className={styles.tc}>{idx + 1}</td>
-                  <td className={styles.tc}>{it.tchat ?? ""}</td>
+                  <td className={styles.tl}>{formatTchat(it.tchat)}</td>
                   <td className={styles.tc}></td>
                   <td className={styles.tl}>{it.ten ?? it.description ?? ""}</td>
                   <td className={styles.tc}>{it.dvtinh ?? it.dvtte ?? ""}</td>
                   <td className={styles.tc}>{it.sluong ?? ""}</td>
-                  <td className={styles.tr}>{formatCurrency(it.dgia ?? 0)}</td>
-                  <td className={styles.tr}>{formatCurrency(it.stckhau ?? 0)}</td>
-                  <td className={styles.tc}>{it.ltsuat ?? it.tsuat ?? ""}</td>
-                  <td className={styles.tr}>{formatCurrency(it.thtien ?? 0)}</td>
+                  <td className={`${styles.tc} ${styles.colFit}`}>{formatCurrency(it.dgia ?? 0)}</td>
+                  <td className={styles.tc}>{formatCurrency(it.stckhau ?? 0)}</td>
+                  <td className={styles.tc}>{it.ltsuat}</td>
+                  <td className={`${styles.tc} ${styles.colFit}`}>{formatCurrency(it.thtien ?? 0)}</td>
                 </tr>
               ))
             )}
@@ -186,7 +293,7 @@ export default function InvoiceViewer({ data }: Props) {
       </div>
 
       <div className={styles.summarySection}>
-        <div className={styles.summaryLeftTableWrapper}>
+        <div className={styles.summaryLeftTableWrapper} style={isSco ? { visibility: "hidden" } : undefined}>
           <table className={styles.summaryTableLeft}>
             <thead>
               <tr>
@@ -196,11 +303,15 @@ export default function InvoiceViewer({ data }: Props) {
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td className={styles.summaryCenter}>{data.ltsuat ?? data.tsuat ?? ""}</td>
-                <td className={styles.summaryRightAlign}>{subtotal}</td>
-                <td className={styles.summaryRightAlign}>{tax}</td>
-              </tr>
+              {
+                listThueSuat.map((it, idx) => (
+                  <tr key={idx}>
+                    <td className={styles.summaryCenter}>{it.tsuat ?? ""}</td>
+                    <td className={styles.summaryRightAlign}>{formatCurrency(it.thtien ?? 0)}</td>
+                    <td className={styles.summaryRightAlign}>{formatCurrency(it.tthue ?? 0)}</td>
+                  </tr>
+                ))
+              }
             </tbody>
           </table>
         </div>
@@ -252,12 +363,14 @@ export default function InvoiceViewer({ data }: Props) {
         </div>
         <div className={styles.sigBlock}>
           <div style={{ marginBottom: "1em" }}>NGUỜI BÁN HÀNG</div>
-          <div style={{ fontSize: "14px", fontStyle: "italic" }}>(Chữ ký điện tử, chữ ký số)</div>
-          <div className={styles.signBox}>
-            <div className={styles.signBoxLine}>Signature Valid</div>
-            <div className={styles.signBoxLine}>Ký bởi {nbcksInfo.cn}</div>
-            <div className={styles.signBoxLine}>Ký ngày: {nbcksInfo.signingTime}</div>
-          </div>
+          <div style={{ fontSize: "14px", fontStyle: "italic", marginBottom: "14px" }}>(Chữ ký điện tử, chữ ký số)</div>
+          { nbcksInfo && nbcksInfo.cn && nbcksInfo.signingTime && (
+            <div className={styles.signBox}>
+              <div className={styles.signBoxLine}>Signature Valid</div>
+              <div className={styles.signBoxLine}>Ký bởi {nbcksInfo.cn}</div>
+              <div className={styles.signBoxLine}>Ký ngày: {nbcksInfo.signingTime}</div>
+            </div>
+          )}
         </div>
       </div>
 
