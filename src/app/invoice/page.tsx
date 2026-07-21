@@ -506,13 +506,19 @@ export default function InvoicePage() {
     const [viewInvoiceHtml, setViewInvoiceHtml] = useState<string | null>(null);
     const [viewInvoiceData, setViewInvoiceData] = useState<any | null>(null);
     const [isLoadingViewInvoice, setIsLoadingViewInvoice] = useState(false);
+    const [viewInvoiceError, setViewInvoiceError] = useState<string | null>(null);
+    const [viewInvoiceRow, setViewInvoiceRow] = useState<InvoiceRow | null>(null);
+    const [viewInvoiceIsSco, setViewInvoiceIsSco] = useState(false);
 
-    const handleViewInvoice = useCallback(async (row: InvoiceRow) => {
+    const handleViewInvoice = useCallback(async (row: InvoiceRow, isSco = false) => {
         try {
             setIsViewingInvoice(true);
             setIsLoadingViewInvoice(true);
             setViewInvoiceHtml(null);
             setViewInvoiceData(null);
+            setViewInvoiceError(null);
+            setViewInvoiceRow(row);
+            setViewInvoiceIsSco(isSco);
 
             const res = await callApi.get("/invoice/getDetailInvoice", {
                 params: {
@@ -520,6 +526,7 @@ export default function InvoicePage() {
                     khhdon: row.khhdon,
                     shdon: row.shdon,
                     khmshdon: row.khmshdon,
+                    ...(isSco ? { isSco: true } : {}),
                 },
                 responseType: "text",
             });
@@ -528,7 +535,9 @@ export default function InvoicePage() {
 
             if (typeof data === "string") {
                 const trimmed = data.trim();
-                if (trimmed.startsWith("<")) {
+                if (trimmed.toLowerCase() === "error") {
+                    setViewInvoiceError("Có lỗi xảy ra khi lấy dữ liệu từ thuế, vui lòng thử lại.");
+                } else if (trimmed.startsWith("<")) {
                     setViewInvoiceHtml(data);
                 } else {
                     try {
@@ -543,25 +552,27 @@ export default function InvoicePage() {
             } else {
                 setViewInvoiceHtml(String(data ?? ""));
             }
-        } catch (err: unknown) {
-            const message = await getErrorMessageAsync(err, "Không lấy được nội dung hoá đơn");
-            setPurchaseError(message);
+        } catch {
             setViewInvoiceHtml(null);
             setViewInvoiceData(null);
-            setIsViewingInvoice(false);
+            setViewInvoiceError("Có lỗi xảy ra khi lấy dữ liệu từ thuế, vui lòng thử lại.");
         } finally {
             setIsLoadingViewInvoice(false);
         }
     }, []);
 
-    const invoiceColumns = useMemo(() => {
-        const cols = PURCHASE_INVOICE_COLUMNS.filter((column) => {
+    const baseInvoiceColumns = useMemo(() => {
+        return PURCHASE_INVOICE_COLUMNS.filter((column) => {
             if (column.field === "nmmst" || column.field === "nmten" || column.field === "nbmst" || column.field === "nbten" || column.field === "tgtphi") {
                 return hasFieldValueInData(invoiceData, column.field as keyof InvoiceRow);
             }
 
             return true;
         });
+    }, [invoiceData]);
+
+    const buildInvoiceColumns = useCallback((isSco: boolean) => {
+        const cols = [...baseInvoiceColumns];
 
         // append action column with access to component scope handler
         cols.push({
@@ -570,7 +581,7 @@ export default function InvoicePage() {
             render: (_v, row) => (
                 <button
                     type="button"
-                    onClick={() => void handleViewInvoice(row)}
+                    onClick={() => void handleViewInvoice(row, isSco)}
                     title="Xem hóa đơn"
                     style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}
                     aria-label="Xem hóa đơn"
@@ -584,7 +595,7 @@ export default function InvoicePage() {
         });
 
         return cols;
-    }, [invoiceData, handleViewInvoice]);
+    }, [baseInvoiceColumns, handleViewInvoice]);
     const compareFileInputRef = useRef<HTMLInputElement | null>(null);
     const passwordInputRef = useRef<HTMLInputElement | null>(null);
     const router = useRouter();
@@ -1377,6 +1388,7 @@ export default function InvoicePage() {
                     featureConfig.dataKeys.map((section) => {
                         const table = resolveSectionTable(invoiceData?.[section.key], "Chưa có dữ liệu hoá đơn này");
                         const collapseKey = getSectionKey(section.key);
+                        const isScoSection = section.key === "invoiceCashRegisterData";
 
                         return (
                             <div key={section.key} className={styles.tableSection}>
@@ -1395,7 +1407,7 @@ export default function InvoicePage() {
                                 {!collapsedTables[collapseKey] ? (
                                     <div className={styles.dataTableWrapper}>
                                         <DynamicTable
-                                            columns={invoiceColumns}
+                                            columns={buildInvoiceColumns(isScoSection)}
                                             data={table.rows}
                                             emptyText={table.emptyText}
                                             tableClassName={styles.dataTable}
@@ -1729,6 +1741,9 @@ export default function InvoicePage() {
                                     onClick={() => {
                                         setIsViewingInvoice(false);
                                         setViewInvoiceHtml(null);
+                                        setViewInvoiceData(null);
+                                        setViewInvoiceError(null);
+                                        setViewInvoiceRow(null);
                                     }}
                                 >
                                     Đóng
@@ -1738,6 +1753,21 @@ export default function InvoicePage() {
                         <div className={styles.compareResultBody} style={{ maxHeight: "100%", overflow: "auto", padding: "20px 20px 10px" }}>
                             {isLoadingViewInvoice ? (
                                 <div>Đang tải...</div>
+                            ) : viewInvoiceError ? (
+                                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "24px 0" }}>
+                                    <div style={{ color: "#d32f2f" }}>{viewInvoiceError}</div>
+                                    <button
+                                        type="button"
+                                        className={styles.compareResultExportButton}
+                                        onClick={() => {
+                                            if (viewInvoiceRow) {
+                                                void handleViewInvoice(viewInvoiceRow, viewInvoiceIsSco);
+                                            }
+                                        }}
+                                    >
+                                        Tải lại
+                                    </button>
+                                </div>
                             ) : viewInvoiceHtml ? (
                                 <div dangerouslySetInnerHTML={{ __html: viewInvoiceHtml }} />
                             ) : viewInvoiceData ? (
