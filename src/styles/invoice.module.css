@@ -1043,7 +1043,7 @@
 
 .summarySection {
   display: grid;
-  grid-template-columns: 38% 63%;
+  grid-template-columns: 38% 63.5%;
   column-gap: 4px;
   margin-top: 8px;
   align-items: start;
