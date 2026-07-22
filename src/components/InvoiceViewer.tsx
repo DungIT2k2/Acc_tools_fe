@@ -79,6 +79,7 @@ export default function InvoiceViewer({ data, isSco }: Props) {
   const sellerBank = `${data.nbstkhoan ?? ""} ${data.nbtnhang ?? ""}`;
 
   const subtotal = formatCurrency(data.tgtcthue ?? 0);
+  const fee = data.tgttphi != null ? formatCurrency(data.tgttphi) : "";
   const tax = formatCurrency(data.tgtthue ?? 0);
   const total = formatCurrency(data.tgtttbso ?? 0);
   const amountInWords = data.tgtttbchu ?? "";
@@ -202,12 +203,14 @@ export default function InvoiceViewer({ data, isSco }: Props) {
               <span className={styles.valueText}>{data.madvchqhvnsnn ?? ""}</span>
             </div>
           </div>
+          { !isSco && (
           <div className={styles.infoRow}>
             <div className={styles.label}>
               <span className={styles.labelText}>CCCD người mua: </span>
               <span className={styles.valueText}>{data.cccdnguoimua ?? ""}</span>
             </div>
           </div>
+          )}
           <div className={styles.infoRow}>
             <div className={styles.label}>
               <span className={styles.labelText}>Số hộ chiếu: </span>
@@ -220,24 +223,55 @@ export default function InvoiceViewer({ data, isSco }: Props) {
               <span className={styles.valueText}>{buyerAddress}</span>
             </div>
           </div>
+          { isSco && (
+          <div className={styles.infoRow}>
+            <div className={styles.label}>
+              <span className={styles.labelText}>Điện thoại:</span>
+              <span className={styles.valueText}></span>
+            </div>
+          </div>
+          )}
+          { isSco && (
+          <div className={styles.infoRow}>
+            <div className={styles.label}>
+              <span className={styles.labelText}>Căn cước công dân:</span>
+              <span className={styles.valueText}></span>
+            </div>
+          </div>
+          )}
+          { !isSco && (
           <div className={styles.infoRow}>
             <div className={styles.label}>
               <span className={styles.labelText}>Số tài khoản: </span>
               <span className={styles.valueText}>{data.nmstkhoan ?? ""}</span>
             </div>
           </div>
+          )}
           <div className={styles.infoRow}>
             <div className={styles.label}>
               <span className={styles.labelText}>Hình thức thanh toán: </span>
               <span className={styles.valueText}>{buyerPayment}</span>
             </div>
           </div>
-          <div className={styles.infoRow}>
+          { !isSco ? (
+          <div className={styles.infoRow} >
             <div className={styles.label}>
               <span className={styles.labelText}>Đơn vị tiền tệ: </span>
               <span className={styles.valueText}>{currency}</span>
             </div>
           </div>
+          ) : (
+            <div className={`${styles.infoRow} ${styles.infoRowInline}`}>
+            <div className={styles.label}>
+              <span className={styles.labelText}>Đơn vị tiền tệ: </span>
+              <span className={styles.valueText}>{currency}</span>
+            </div>
+            <div className={styles.label}>
+              <span className={styles.labelText}>Tỷ giá: </span>
+              <span className={styles.valueText}></span>
+            </div>
+          </div>
+          )}
           <div className={`${styles.infoRow} ${styles.infoRowInline}`}>
             <div className={styles.label}>
               <span className={styles.labelText}>Số bảng kê: </span>
@@ -282,7 +316,7 @@ export default function InvoiceViewer({ data, isSco }: Props) {
                   <td className={styles.tc}>{it.dvtinh ?? it.dvtte ?? ""}</td>
                   <td className={styles.tc}>{it.sluong ?? ""}</td>
                   <td className={`${styles.tc} ${styles.colFit}`}>{formatCurrency(it.dgia ?? 0)}</td>
-                  <td className={styles.tc}>{formatCurrency(it.stckhau ?? 0)}</td>
+                  <td className={styles.tc}>{it.stckhau != null ? formatCurrency(it.stckhau) : ""}</td>
                   <td className={styles.tc}>{it.ltsuat}</td>
                   <td className={`${styles.tc} ${styles.colFit}`}>{formatCurrency(it.thtien ?? 0)}</td>
                 </tr>
@@ -293,7 +327,7 @@ export default function InvoiceViewer({ data, isSco }: Props) {
       </div>
 
       <div className={styles.summarySection}>
-        <div className={styles.summaryLeftTableWrapper} style={isSco ? { visibility: "hidden" } : undefined}>
+        <div className={styles.summaryLeftTableWrapper} style={(isSco && listThueSuat.length <= 0) ? { visibility: "hidden" } : undefined}>
           <table className={styles.summaryTableLeft}>
             <thead>
               <tr>
@@ -319,6 +353,7 @@ export default function InvoiceViewer({ data, isSco }: Props) {
         <div className={styles.summaryRightTableWrapper}>
           <table className={styles.summaryTableRight}>
             <tbody>
+              {subtotal && (
               <tr>
                 <td className={styles.summaryDescription}>
                   Tổng tiền chưa thuế<br />
@@ -326,6 +361,8 @@ export default function InvoiceViewer({ data, isSco }: Props) {
                 </td>
                 <td className={styles.summaryRightAlign}>{subtotal}</td>
               </tr>
+              )}
+              {tax && (
               <tr>
                 <td className={styles.summaryDescription}>
                   Tổng tiền thuế<br />
@@ -333,10 +370,13 @@ export default function InvoiceViewer({ data, isSco }: Props) {
                 </td>
                 <td className={styles.summaryRightAlign}>{tax}</td>
               </tr>
+              )}
+              { (isSco && fee) || !isSco && (
               <tr>
                 <td className={styles.summaryDescription}>Tổng tiền phí</td>
-                <td className={styles.summaryRightAlign}>{formatCurrency(data.tgttphi ?? 0)}</td>
+                <td className={styles.summaryRightAlign}>{fee}</td>
               </tr>
+              )}
               <tr>
                 <td className={styles.summaryDescription}>Tổng tiền chiết khấu thương mại</td>
                 <td className={styles.summaryRightAlign}>{formatCurrency(data.ttcktmai ?? 0)}</td>
@@ -349,6 +389,12 @@ export default function InvoiceViewer({ data, isSco }: Props) {
                 <td className={styles.summaryDescription}>Tổng tiền thanh toán bằng chữ</td>
                 <td className={`${styles.summaryRightAlign} ${styles.summaryAmountWords}`}>{amountInWords || ""}</td>
               </tr>
+              {isSco && (
+                <tr>
+                  <td className={styles.summaryDescription}>Ghi chú</td>
+                  <td className={styles.summaryRightAlign}></td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

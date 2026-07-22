@@ -637,7 +637,7 @@ export default function InvoicePage() {
     const applyInvoiceLoginToken = useCallback((token: string) => {
         const payload = decodeTokenPayload<{ usernameInvoice?: string; fullName?: string }>(token);
 
-        if (!payload?.usernameInvoice || !payload?.fullName) {
+        if (!payload?.usernameInvoice) {
             alert("Token không hợp lệ cho đăng nhập hoá đơn điện tử");
             return false;
         }
