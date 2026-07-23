@@ -69,6 +69,137 @@ type CompareResultData = {
     record?: string | number;
 };
 
+type TaskQueueItem = {
+    id: string;
+    label: string;
+    status: string;
+    createdAt: number;
+};
+
+const TASK_QUEUE_TERMINAL_STATUSES = ["done", "completed", "failed", "canceled", "cancelled"];
+
+function formatTaskQueueStatus(status: string): string {
+    switch (status) {
+        case "pending":
+            return "Đang chờ xử lý";
+        case "processing":
+        case "running":
+            return "Đang xử lý";
+        case "done":
+        case "completed":
+            return "Hoàn thành";
+        case "failed":
+            return "Thất bại";
+        case "canceled":
+        case "cancelled":
+            return "Đã huỷ";
+        default:
+            return status;
+    }
+}
+
+function isTaskQueueCancelable(status: string): boolean {
+    return !TASK_QUEUE_TERMINAL_STATUSES.includes(status);
+}
+
+function formatTaskQueueCreatedAt(createdAt: number): string {
+    if (!createdAt) {
+        return "-";
+    }
+
+    return new Date(createdAt).toLocaleString("vi-VN");
+}
+
+function getTaskQueueStatusClassKey(status: string): "pending" | "processing" | "done" | "failed" | "canceled" {
+    switch (status) {
+        case "pending":
+            return "pending";
+        case "processing":
+        case "running":
+            return "processing";
+        case "done":
+        case "completed":
+            return "done";
+        case "failed":
+            return "failed";
+        case "canceled":
+        case "cancelled":
+            return "canceled";
+        default:
+            return "pending";
+    }
+}
+
+function getTaskQueueStatusBadgeClassName(status: string): string {
+    switch (getTaskQueueStatusClassKey(status)) {
+        case "pending":
+            return styles.taskQueueStatusPending;
+        case "processing":
+            return styles.taskQueueStatusProcessing;
+        case "done":
+            return styles.taskQueueStatusDone;
+        case "failed":
+            return styles.taskQueueStatusFailed;
+        case "canceled":
+            return styles.taskQueueStatusCanceled;
+        default:
+            return styles.taskQueueStatusPending;
+    }
+}
+
+function isTaskQueueItem(value: unknown): value is TaskQueueItem {
+    return (
+        typeof value === "object" &&
+        value !== null &&
+        "id" in value &&
+        "label" in value &&
+        "status" in value
+    );
+}
+
+type TaskQueueUserGroup = {
+    userKey: string;
+    items: TaskQueueItem[];
+};
+
+function normalizeTaskQueueResponse(data: unknown): TaskQueueUserGroup[] {
+    if (Array.isArray(data)) {
+        return [{ userKey: "", items: data.filter(isTaskQueueItem) }];
+    }
+
+    if (typeof data === "object" && data !== null) {
+        return Object.entries(data as Record<string, unknown>).map(([userKey, value]) => ({
+            userKey,
+            items: (Array.isArray(value) ? value : [value]).filter(isTaskQueueItem),
+        }));
+    }
+
+    return [];
+}
+
+type TaskQueueGroup = {
+    label: string;
+    items: TaskQueueItem[];
+};
+
+function groupTaskQueueItems(items: TaskQueueItem[]): TaskQueueGroup[] {
+    const groups: TaskQueueGroup[] = [];
+    const indexByLabel = new Map<string, number>();
+
+    items.forEach((item) => {
+        const existingIndex = indexByLabel.get(item.label);
+
+        if (existingIndex === undefined) {
+            indexByLabel.set(item.label, groups.length);
+            groups.push({ label: item.label, items: [item] });
+        } else {
+            groups[existingIndex].items.push(item);
+        }
+    });
+
+    return groups;
+}
+
 const PURCHASE_INVOICE_SECTION_ERROR_TEXT = "Có lỗi xảy ra khi lấy hoá đơn";
 
 function isInvoiceSectionError(item: unknown): item is InvoiceSectionError {
@@ -509,8 +640,56 @@ export default function InvoicePage() {
     const [viewInvoiceError, setViewInvoiceError] = useState<string | null>(null);
     const [viewInvoiceRow, setViewInvoiceRow] = useState<InvoiceRow | null>(null);
     const [viewInvoiceIsSco, setViewInvoiceIsSco] = useState(false);
+    const [isAutoMode, setIsAutoMode] = useState(false);
+    const [isRegisteringAutoTask, setIsRegisteringAutoTask] = useState(false);
+    const [isTaskQueueModalOpen, setIsTaskQueueModalOpen] = useState(false);
+    const [taskQueueUserGroups, setTaskQueueUserGroups] = useState<TaskQueueUserGroup[]>([]);
+    const [isLoadingTaskQueue, setIsLoadingTaskQueue] = useState(false);
+    const [taskQueueError, setTaskQueueError] = useState("");
+    const [cancelingTaskQueueId, setCancelingTaskQueueId] = useState<string | null>(null);
+
+    const loadTaskQueueList = useCallback(async () => {
+        try {
+            setIsLoadingTaskQueue(true);
+            setTaskQueueError("");
+            const res = await callApi.get<unknown>("/invoice/listTaskQueue");
+            setTaskQueueUserGroups(normalizeTaskQueueResponse(res.data));
+        } catch (err: unknown) {
+            const message = await getErrorMessageAsync(err, "Không lấy được danh sách tác vụ tự động");
+            setTaskQueueError(message);
+            setTaskQueueUserGroups([]);
+        } finally {
+            setIsLoadingTaskQueue(false);
+        }
+    }, []);
 
     const handleViewInvoice = useCallback(async (row: InvoiceRow, isSco = false) => {
+        const detailParams = {
+            nbmst: row.nbmst,
+            khhdon: row.khhdon,
+            shdon: row.shdon,
+            khmshdon: row.khmshdon,
+            ...(isSco ? { isSco: true } : {}),
+        };
+
+        if (isAutoMode) {
+            try {
+                setIsRegisteringAutoTask(true);
+                await callApi.post("/invoice/createTaskQueue", {
+                    type: "/invoice/getDetailInvoice",
+                    payload: detailParams,
+                });
+                setIsTaskQueueModalOpen(true);
+                loadTaskQueueList();
+            } catch (err: unknown) {
+                const message = await getErrorMessageAsync(err, "Đăng ký tác vụ tự động thất bại");
+                alert(message);
+            } finally {
+                setIsRegisteringAutoTask(false);
+            }
+            return;
+        }
+
         try {
             setIsViewingInvoice(true);
             setIsLoadingViewInvoice(true);
@@ -521,13 +700,7 @@ export default function InvoicePage() {
             setViewInvoiceIsSco(isSco);
 
             const res = await callApi.get("/invoice/getDetailInvoice", {
-                params: {
-                    nbmst: row.nbmst,
-                    khhdon: row.khhdon,
-                    shdon: row.shdon,
-                    khmshdon: row.khmshdon,
-                    ...(isSco ? { isSco: true } : {}),
-                },
+                params: detailParams,
                 responseType: "text",
             });
 
@@ -559,7 +732,7 @@ export default function InvoicePage() {
         } finally {
             setIsLoadingViewInvoice(false);
         }
-    }, []);
+    }, [isAutoMode, loadTaskQueueList]);
 
     const baseInvoiceColumns = useMemo(() => {
         return PURCHASE_INVOICE_COLUMNS.filter((column) => {
@@ -855,21 +1028,43 @@ export default function InvoicePage() {
         return buildPurchaseInvoiceMonthParams(purchaseFromDate, purchaseToDate);
     };
 
+    const registerAutoTaskQueue = async (type: string, payload: Record<string, unknown>) => {
+        try {
+            setIsRegisteringAutoTask(true);
+            await callApi.post("/invoice/createTaskQueue", { type, payload });
+            setIsAutoMode(false);
+            setIsTaskQueueModalOpen(true);
+            loadTaskQueueList();
+            return true;
+        } catch (err: unknown) {
+            const message = await getErrorMessageAsync(err, "Đăng ký tác vụ tự động thất bại");
+            setPurchaseError(message);
+            return false;
+        } finally {
+            setIsRegisteringAutoTask(false);
+        }
+    };
+
     const handleSearchPurchaseInvoices = async () => {
         const params = getValidatedPurchaseInvoiceParams();
         if (!params) {
             return;
         }
 
+        const featureConfig = INVOICE_FEATURES.find((f) => f.id === selectedFeature);
+        if (!featureConfig) {
+            setPurchaseError("Chức năng chưa được cấu hình.");
+            return;
+        }
+
+        if (isAutoMode) {
+            await registerAutoTaskQueue(featureConfig.apiEndpoint, { from: params.from, to: params.to });
+            return;
+        }
+
         try {
             setIsSearchingPurchase(true);
             setPurchaseError("");
-
-            const featureConfig = INVOICE_FEATURES.find((f) => f.id === selectedFeature);
-            if (!featureConfig) {
-                setPurchaseError("Chức năng chưa được cấu hình.");
-                return;
-            }
 
             const res = await callApi.get<unknown>(featureConfig.apiEndpoint, {
                 params: {
@@ -900,15 +1095,20 @@ export default function InvoicePage() {
             return;
         }
 
+        const featureConfig = INVOICE_FEATURES.find((f) => f.id === selectedFeature);
+        if (!featureConfig) {
+            setPurchaseError("Chức năng chưa được cấu hình.");
+            return;
+        }
+
+        if (isAutoMode) {
+            await registerAutoTaskQueue(featureConfig.apiEndpoint, { from: params.from, to: params.to, renew: true });
+            return;
+        }
+
         try {
             setIsSearchingPurchase(true);
             setPurchaseError("");
-
-            const featureConfig = INVOICE_FEATURES.find((f) => f.id === selectedFeature);
-            if (!featureConfig) {
-                setPurchaseError("Chức năng chưa được cấu hình.");
-                return;
-            }
 
             const res = await callApi.get<unknown>(featureConfig.apiEndpoint, {
                 params: {
@@ -1273,6 +1473,33 @@ export default function InvoicePage() {
         }));
     };
 
+    const handleOpenTaskQueueModal = () => {
+        setIsTaskQueueModalOpen(true);
+        loadTaskQueueList();
+    };
+
+    const handleCloseTaskQueueModal = () => {
+        setIsTaskQueueModalOpen(false);
+    };
+
+    const handleCancelTaskQueueItem = async (id: string) => {
+        try {
+            setCancelingTaskQueueId(id);
+            await callApi.post(`/invoice/cancelTaskQueue/${id}`);
+            setTaskQueueUserGroups((prev) =>
+                prev.map((userGroup) => ({
+                    ...userGroup,
+                    items: userGroup.items.filter((item) => item.id !== id),
+                })),
+            );
+        } catch (err: unknown) {
+            const message = await getErrorMessageAsync(err, "Huỷ tác vụ tự động thất bại");
+            setTaskQueueError(message);
+        } finally {
+            setCancelingTaskQueueId(null);
+        }
+    };
+
     const renderFeatureContent = () => {
         const featureConfig = INVOICE_FEATURES.find((f) => f.id === selectedFeature);
         if (!featureConfig) {
@@ -1327,11 +1554,32 @@ export default function InvoicePage() {
                     </div>
 
                     <div className={styles.filterActions}>
-                        <button className={styles.loginButton} onClick={handleSearchPurchaseInvoices}>
-                            {isSearchingPurchase ? "Đang tìm kiếm..." : "Tìm kiếm"}
+                        <button
+                            className={styles.loginButton}
+                            onClick={handleSearchPurchaseInvoices}
+                            disabled={isRegisteringAutoTask}
+                        >
+                            {isAutoMode
+                                ? (isRegisteringAutoTask ? "Đang đăng ký..." : "Đăng ký tự động Tìm kiếm")
+                                : (isSearchingPurchase ? "Đang tìm kiếm..." : "Tìm kiếm")}
                         </button>
-                        <button className={styles.secondaryButton} onClick={handleSearchPurchaseInvoicesWithRenew}>
-                            {isSearchingPurchase ? "Đang đồng bộ..." : "Tìm kiếm (Đồng bộ dữ liệu mới nhất)"}
+                        <button
+                            className={styles.secondaryButton}
+                            onClick={handleSearchPurchaseInvoicesWithRenew}
+                            disabled={isRegisteringAutoTask}
+                        >
+                            {isAutoMode
+                                ? (isRegisteringAutoTask ? "Đang đăng ký..." : "Đăng ký tự động Đồng bộ dữ liệu mới nhất")
+                                : (isSearchingPurchase ? "Đang đồng bộ..." : "Tìm kiếm (Đồng bộ dữ liệu mới nhất)")}
+                        </button>
+                        <button
+                            type="button"
+                            className={`${styles.autoModeButton} ${isAutoMode ? styles.autoModeButtonActive : ""}`}
+                            onClick={() => setIsAutoMode((prev) => !prev)}
+                            aria-pressed={isAutoMode}
+                            title="Khi bật, các thao tác Tìm kiếm / Tìm kiếm (Đồng bộ) / Xem hoá đơn sẽ đăng ký tác vụ tự động thay vì gọi API ngay"
+                        >
+                            {isAutoMode ? "Đăng ký tự động: Bật" : "Đăng ký tự động: Tắt"}
                         </button>
                         <button
                             className={styles.detailButton}
@@ -1603,6 +1851,13 @@ export default function InvoicePage() {
                                     {feature === 1 ? "Lấy hoá đơn mua" : "Lấy hoá đơn bán"}
                                 </button>
                             ))}
+                            <button
+                                type="button"
+                                className={styles.taskQueueOpenButton}
+                                onClick={handleOpenTaskQueueModal}
+                            >
+                                Danh sách tác vụ tự động
+                            </button>
                         </div>
 
                     </aside>
@@ -1775,6 +2030,84 @@ export default function InvoicePage() {
                                 <InvoiceViewer data={viewInvoiceData} isSco={viewInvoiceIsSco} />
                             ) : (
                                 <div>Không có nội dung hoá đơn</div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            ) : null}
+
+            {isTaskQueueModalOpen ? (
+                <div className={styles.compareResultOverlay}>
+                    <div className={styles.compareResultModal} style={{ maxWidth: 640, height: "auto", maxHeight: "80vh", display: "flex", flexDirection: "column" }}>
+                        <div className={styles.compareResultHeader} style={{ flexShrink: 0 }}>
+                            <h3>Danh sách tác vụ tự động</h3>
+                            <div className={styles.compareResultActions}>
+                                <button
+                                    type="button"
+                                    className={styles.compareResultExportButton}
+                                    onClick={loadTaskQueueList}
+                                    disabled={isLoadingTaskQueue}
+                                >
+                                    {isLoadingTaskQueue ? "Đang tải..." : "Tải lại"}
+                                </button>
+                                <button
+                                    type="button"
+                                    className={styles.compareResultCloseButton}
+                                    onClick={handleCloseTaskQueueModal}
+                                >
+                                    Đóng
+                                </button>
+                            </div>
+                        </div>
+                        <div className={styles.compareResultBody} style={{ flexDirection: "column", padding: "16px 20px 20px", overflowY: "auto", maxHeight: "calc(80vh - 60px)" }}>
+                            {taskQueueError ? <div className={styles.errorMessage}>{taskQueueError}</div> : null}
+                            {isLoadingTaskQueue ? (
+                                <div>Đang tải danh sách tác vụ...</div>
+                            ) : taskQueueUserGroups.every((userGroup) => userGroup.items.length === 0) ? (
+                                <div className={styles.compareResultEmpty}>Chưa có tác vụ tự động nào được đăng ký.</div>
+                            ) : (
+                                <div className={styles.taskQueueList}>
+                                    {taskQueueUserGroups
+                                        .filter((userGroup) => userGroup.items.length > 0)
+                                        .map((userGroup) => (
+                                            <div key={userGroup.userKey || "unknown"} className={styles.taskQueueUserGroup}>
+                                                <div className={styles.taskQueueUserGroupTitle}>
+                                                    Tài khoản: {userGroup.userKey || "Không xác định"}
+                                                </div>
+                                                <div className={styles.taskQueueList}>
+                                                    {groupTaskQueueItems(userGroup.items).map((group) => (
+                                                        <div key={group.label} className={styles.taskQueueGroup}>
+                                                            <div className={styles.taskQueueGroupTitle}>{group.label}</div>
+                                                            <div className={styles.taskQueueGroupList}>
+                                                                {group.items.map((item) => (
+                                                                    <div key={item.id} className={styles.taskQueueItem}>
+                                                                        <div className={styles.taskQueueItemInfo}>
+                                                                            <span className={`${styles.taskQueueStatusBadge} ${getTaskQueueStatusBadgeClassName(item.status)}`}>
+                                                                                {formatTaskQueueStatus(item.status)}
+                                                                            </span>
+                                                                            <span className={styles.taskQueueItemMeta}>
+                                                                                {formatTaskQueueCreatedAt(item.createdAt)}
+                                                                            </span>
+                                                                        </div>
+                                                                        {isTaskQueueCancelable(item.status) ? (
+                                                                            <button
+                                                                                type="button"
+                                                                                className={styles.taskQueueCancelButton}
+                                                                                onClick={() => handleCancelTaskQueueItem(item.id)}
+                                                                                disabled={cancelingTaskQueueId === item.id}
+                                                                            >
+                                                                                {cancelingTaskQueueId === item.id ? "Đang huỷ..." : "Huỷ"}
+                                                                            </button>
+                                                                        ) : null}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                </div>
                             )}
                         </div>
                     </div>
