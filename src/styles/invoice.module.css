@@ -1525,10 +1525,6 @@
   min-width: 70px;
 }
 
-.dataTable th[data-field="nbten"],
-.dataTable td[data-field="nbten"],
-.dataTable th[data-field="nmten"],
-.dataTable td[data-field="nmten"],
 .dataTable th[data-field="diengiai"],
 .dataTable td[data-field="diengiai"] {
   text-align: left;

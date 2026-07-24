@@ -836,6 +836,18 @@ export default function InvoicePage() {
     }, []);
 
     useEffect(() => {
+        const savedFromDate = localStorage.getItem("invoice_from_date");
+        const savedToDate = localStorage.getItem("invoice_to_date");
+
+        if (savedFromDate) {
+            setPurchaseFromDate(savedFromDate);
+        }
+        if (savedToDate) {
+            setPurchaseToDate(savedToDate);
+        }
+    }, []);
+
+    useEffect(() => {
         const query = window.matchMedia("(max-width: 760px)");
         const onChange = (e: MediaQueryListEvent) => setIsMobileView(e.matches);
 
@@ -1459,11 +1471,13 @@ export default function InvoicePage() {
     const handlePurchaseFromDateChange = (value: string) => {
         setPurchaseFromDate(value);
         setHasSearchedPurchase(false);
+        localStorage.setItem("invoice_from_date", value);
     };
 
     const handlePurchaseToDateChange = (value: string) => {
         setPurchaseToDate(value);
         setHasSearchedPurchase(false);
+        localStorage.setItem("invoice_to_date", value);
     };
 
     const toggleTableSection = (section: "issued" | "noCode" | "cashRegister") => {
