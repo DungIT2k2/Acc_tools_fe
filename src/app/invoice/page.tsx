@@ -647,6 +647,7 @@ export default function InvoicePage() {
     const [isLoadingTaskQueue, setIsLoadingTaskQueue] = useState(false);
     const [taskQueueError, setTaskQueueError] = useState("");
     const [cancelingTaskQueueId, setCancelingTaskQueueId] = useState<string | null>(null);
+    const [isClearingTaskQueueHistory, setIsClearingTaskQueueHistory] = useState(false);
 
     const loadTaskQueueList = useCallback(async () => {
         try {
@@ -1514,6 +1515,19 @@ export default function InvoicePage() {
         }
     };
 
+    const handleClearTaskQueueHistory = async () => {
+        try {
+            setIsClearingTaskQueueHistory(true);
+            await callApi.delete("/invoice/clearTaskHistory");
+            await loadTaskQueueList();
+        } catch (err: unknown) {
+            const message = await getErrorMessageAsync(err, "Xóa lịch sử tác vụ tự động thất bại");
+            setTaskQueueError(message);
+        } finally {
+            setIsClearingTaskQueueHistory(false);
+        }
+    };
+
     const renderFeatureContent = () => {
         const featureConfig = INVOICE_FEATURES.find((f) => f.id === selectedFeature);
         if (!featureConfig) {
@@ -2052,17 +2066,42 @@ export default function InvoicePage() {
 
             {isTaskQueueModalOpen ? (
                 <div className={styles.compareResultOverlay}>
-                    <div className={styles.compareResultModal} style={{ maxWidth: 640, height: "auto", maxHeight: "80vh", display: "flex", flexDirection: "column" }}>
-                        <div className={styles.compareResultHeader} style={{ flexShrink: 0 }}>
+                    <div className={styles.taskQueueModal}>
+                        <div className={styles.compareResultHeader}>
                             <h3>Danh sách tác vụ tự động</h3>
                             <div className={styles.compareResultActions}>
                                 <button
                                     type="button"
-                                    className={styles.compareResultExportButton}
+                                    className={styles.taskQueueClearHistoryButton}
+                                    onClick={handleClearTaskQueueHistory}
+                                    disabled={isClearingTaskQueueHistory || isLoadingTaskQueue}
+                                >
+                                    {isClearingTaskQueueHistory ? "Đang xóa..." : "Xóa lịch sử"}
+                                </button>
+                                <button
+                                    type="button"
+                                    className={styles.taskQueueRefreshButton}
                                     onClick={loadTaskQueueList}
                                     disabled={isLoadingTaskQueue}
+                                    title="Tải lại"
+                                    aria-label="Tải lại"
                                 >
-                                    {isLoadingTaskQueue ? "Đang tải..." : "Tải lại"}
+                                    <svg
+                                        width="18"
+                                        height="18"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className={isLoadingTaskQueue ? styles.taskQueueRefreshIconSpinning : undefined}
+                                    >
+                                        <path
+                                            d="M4 4v6h6M20 20v-6h-6M4.5 15a8 8 0 0 0 14.5 3M19.5 9A8 8 0 0 0 5 6"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        />
+                                    </svg>
                                 </button>
                                 <button
                                     type="button"
@@ -2073,14 +2112,14 @@ export default function InvoicePage() {
                                 </button>
                             </div>
                         </div>
-                        <div className={styles.compareResultBody} style={{ flexDirection: "column", padding: "16px 20px 20px", overflowY: "auto", maxHeight: "calc(80vh - 60px)" }}>
+                        <div className={styles.taskQueueModalBody}>
                             {taskQueueError ? <div className={styles.errorMessage}>{taskQueueError}</div> : null}
                             {isLoadingTaskQueue ? (
                                 <div>Đang tải danh sách tác vụ...</div>
                             ) : taskQueueUserGroups.every((userGroup) => userGroup.items.length === 0) ? (
                                 <div className={styles.compareResultEmpty}>Chưa có tác vụ tự động nào được đăng ký.</div>
                             ) : (
-                                <div className={styles.taskQueueList}>
+                                <div className={styles.taskQueueUserGroupsList}>
                                     {taskQueueUserGroups
                                         .filter((userGroup) => userGroup.items.length > 0)
                                         .map((userGroup) => (
