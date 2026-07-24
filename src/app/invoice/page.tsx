@@ -480,6 +480,11 @@ const PURCHASE_INVOICE_COLUMNS: DynamicTableColumn<InvoiceRow>[] = [
     { header: formatHeaderLabel("Trạng thái hoá đơn"), field: "tthai" },
 ];
 
+// Ẩn nhanh cột theo từng tính năng (feature id trong INVOICE_FEATURES) - thêm field vào mảng tương ứng để ẩn cột đó trong bảng.
+const HIDDEN_COLUMNS_BY_FEATURE_ID: Partial<Record<number, Array<keyof InvoiceRow>>> = {
+    1: ["nmten"], // Lấy hoá đơn mua: không hiển thị Tên người mua
+};
+
 function formatDateForApi(date: Date) {
     const day = String(date.getDate()).padStart(2, "0");
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -736,14 +741,20 @@ export default function InvoicePage() {
     }, [isAutoMode, loadTaskQueueList]);
 
     const baseInvoiceColumns = useMemo(() => {
+        const hiddenFields = HIDDEN_COLUMNS_BY_FEATURE_ID[selectedFeature] ?? [];
+
         return PURCHASE_INVOICE_COLUMNS.filter((column) => {
+            if (hiddenFields.includes(column.field)) {
+                return false;
+            }
+
             if (column.field === "nmmst" || column.field === "nmten" || column.field === "nbmst" || column.field === "nbten" || column.field === "tgtphi") {
                 return hasFieldValueInData(invoiceData, column.field as keyof InvoiceRow);
             }
 
             return true;
         });
-    }, [invoiceData]);
+    }, [invoiceData, selectedFeature]);
 
     const buildInvoiceColumns = useCallback((isSco: boolean) => {
         const cols = [...baseInvoiceColumns];
