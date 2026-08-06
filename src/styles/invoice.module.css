@@ -1120,6 +1120,7 @@
   align-items: flex-start;
   gap: 8px;
   flex-shrink: 0;
+  position: relative;
 }
 
 .invHeaderLeft {
@@ -1128,9 +1129,12 @@
 }
 
 .invHeaderRight {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: auto;
+  max-width: 180px;
   text-align: right;
-  width: 180px;
-  flex: 0 0 140px;
 }
 
 .invHeaderBottom {
@@ -1462,15 +1466,50 @@
 }
 
 @media print {
-  @page { size: A4; margin: 5mm 0 0 0; }
-  @page :first { margin-top: 0; }
+  @page { size: A4 portrait; margin: 5mm; }
   html, body { margin: 0; padding: 0; min-height: 100vh; }
-  .invoiceA4 { box-shadow: none; flex: none; min-height: 297mm; overflow: visible; width: 210mm; background-repeat: repeat; background-size: 380%;}
-  :global(table), :global(tr), :global(td), :global(th) { page-break-inside: avoid; }
-  .invoiceTable th, .invoiceTable td { font-size: 16px;}
-  .summaryTableLeft th, .summaryTableLeft td, .summaryTableRight th, .summaryTableRight td { font-size: 16px; }
+
+  .invoiceA4 {
+    box-shadow: none;
+    flex: none;
+    width: auto;
+    max-width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    padding: 0 8mm;
+    overflow: visible;
+    background-repeat: repeat;
+    background-size: auto;
+  }
+
+  .invoiceTable,
+  .summaryTableLeft,
+  .summaryTableRight {
+    width: 100%;
+    table-layout: auto;
+    font-size: 0.95rem;
+  }
+
+  .invoiceTable th,
+  .invoiceTable td {
+    font-size: 15px;
+  }
+
   .valueText { border-bottom: 1px dashed #bbb; }
-  .invHeaderRight { position: absolute; top: 20px; right: -40px; }
+
+  .invHeaderTop {
+    position: relative;
+    margin-top: 12px;
+  }
+
+  .invHeaderRight {
+    position: absolute;
+    top: 0;
+    right: 10;
+    width: auto;
+    max-width: 180px;
+    text-align: right;
+  }
 }
 
 .helperText {
