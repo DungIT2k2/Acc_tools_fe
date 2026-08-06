@@ -1472,8 +1472,7 @@
   .invoiceA4 {
     box-shadow: none;
     flex: none;
-    width: auto;
-    max-width: 210mm;
+    width: 90%;
     min-height: 297mm;
     margin: 0 auto;
     padding: 0 8mm;
@@ -1482,10 +1481,15 @@
     background-size: auto;
   }
 
-  .invoiceTable,
+  .invoiceTable {
+    width: 100%;
+    table-layout: auto;
+    font-size: 0.95rem;
+  }
+
   .summaryTableLeft,
   .summaryTableRight {
-    width: 100%;
+    width: 97%;
     table-layout: auto;
     font-size: 0.95rem;
   }
