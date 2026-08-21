@@ -308,7 +308,12 @@
   border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
-  white-space: normal;
+  white-space: nowrap;
+}
+
+.statusCell {
+  vertical-align: middle;
+  white-space: nowrap;
 }
 
 .statusActive {

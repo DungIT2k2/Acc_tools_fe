@@ -21,11 +21,37 @@ type EntityType = "DN" | "CN";
 type TaxLookupItem = {
     STT: string;
     MST: string;
+    created_at?: string;
     "Tên người nộp thuế": string;
-    "Địa chỉ trụ sở/địa chỉ kinh doanh": string;
+    "Địa chỉ trụ sở/địa chỉ kinh doanh"?: string;
     "Cơ quan thuế quản lý": string;
     "Trạng thái MST": string;
 };
+
+function formatCreatedAt(value?: string): string {
+    if (!value) {
+        return "-";
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return value;
+    }
+
+    const parts = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Asia/Ho_Chi_Minh",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hourCycle: "h23",
+    }).formatToParts(date);
+    const values = Object.fromEntries(parts.map(({ type, value: partValue }) => [type, partValue]));
+
+    return `${values.day}/${values.month}/${values.year} ${values.hour}:${values.minute}:${values.second}`;
+}
 
 // Backend wraps the array of matches in the "information" field of the response
 function normalizeLookupResult(data: unknown): TaxLookupItem[] {
@@ -67,11 +93,17 @@ export default function TaxLookupPage() {
                 const infoRes = await callApi.get("/tax/captcha", { params: { type: entityType } });
                 const { lookupId, expiresAt, contentType, image } = infoRes.data as CaptchaResponse;
                 const url = `data:${contentType};base64,${image}`;
-                const { data: { text } } = await Tesseract.recognize(url, "eng");
 
                 setCaptchaInfo({ lookupId, expiresAt });
                 setCaptchaImageUrl(url);
-                setCaptchaValue(text);
+
+                try {
+                    const { data: { text } } = await Tesseract.recognize(url, "eng");
+                    setCaptchaValue(text);
+                } catch {
+                    setCaptchaValue("");
+                    setError("Không thể tự nhận diện captcha. Vui lòng nhập captcha theo hình.");
+                }
             } catch (err) {
                 const message = await getErrorMessageAsync(err, "Không thể tải captcha. Vui lòng thử lại.");
                 setError(message);
@@ -96,6 +128,10 @@ export default function TaxLookupPage() {
     }, [loadCaptcha]);
 
     const handleSearch = async () => {
+        if (loadingCaptcha || captchaRequestsRef.current.has(entityType)) {
+            setError("Vui lòng chờ captcha tải xong trước khi tìm kiếm.");
+            return;
+        }
         if (!captchaInfo) {
             setError("Vui lòng tải captcha trước khi tìm kiếm.");
             return;
@@ -213,7 +249,11 @@ export default function TaxLookupPage() {
                     </div>
                 </div>
 
-                <button className={styles.submitBtn} onClick={handleSearch} disabled={loadingSearch}>
+                <button
+                    className={styles.submitBtn}
+                    onClick={handleSearch}
+                    disabled={loadingSearch || loadingCaptcha}
+                >
                     {loadingSearch && <span className={styles.spinner} />}
                     {loadingSearch ? "Đang tra cứu..." : "Tìm kiếm"}
                 </button>
@@ -230,9 +270,10 @@ export default function TaxLookupPage() {
                                         <th>STT</th>
                                         <th>Mã số thuế</th>
                                         <th>Tên người nộp thuế</th>
-                                        <th>Địa chỉ</th>
+                                        {entityType === "DN" && <th>Địa chỉ</th>}
                                         <th>Cơ quan thuế quản lý</th>
                                         <th>Trạng thái</th>
+                                        <th>Cập nhật lần cuối</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -243,9 +284,11 @@ export default function TaxLookupPage() {
                                                 <td>{item.STT}</td>
                                                 <td>{item.MST}</td>
                                                 <td>{item["Tên người nộp thuế"]}</td>
-                                                <td>{item["Địa chỉ trụ sở/địa chỉ kinh doanh"]}</td>
+                                                {entityType === "DN" && (
+                                                    <td>{item["Địa chỉ trụ sở/địa chỉ kinh doanh"] || "-"}</td>
+                                                )}
                                                 <td>{item["Cơ quan thuế quản lý"]}</td>
-                                                <td>
+                                                <td className={styles.statusCell}>
                                                     <span
                                                         className={
                                                             isActive ? styles.statusActive : styles.statusInactive
@@ -254,6 +297,7 @@ export default function TaxLookupPage() {
                                                         {item["Trạng thái MST"]}
                                                     </span>
                                                 </td>
+                                                <td>{formatCreatedAt(item.created_at)}</td>
                                             </tr>
                                         );
                                     })}
