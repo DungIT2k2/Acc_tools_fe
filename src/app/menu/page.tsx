@@ -35,6 +35,11 @@ export default function MenuPage() {
             path: "/transcoding",
             icon: "🔄",
         },
+        {
+            name: "Tra cứu mã số thuế",
+            path: "/tax-lookup",
+            icon: "🔍",
+        },
         // {
         //     name: "Chức năng 4",
         //     path: "/module-4",
