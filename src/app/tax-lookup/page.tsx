@@ -28,6 +28,17 @@ type TaxLookupItem = {
     "Trạng thái MST": string;
 };
 
+const FIVE_MINUTES_IN_MS = 5 * 60 * 1000;
+
+function isCreatedAtWithinFiveMinutes(value?: string): boolean {
+    if (!value) {
+        return false;
+    }
+
+    const createdAt = new Date(value).getTime();
+    return !Number.isNaN(createdAt) && Math.abs(Date.now() - createdAt) <= FIVE_MINUTES_IN_MS;
+}
+
 function formatCreatedAt(value?: string): string {
     if (!value) {
         return "-";
@@ -74,8 +85,50 @@ export default function TaxLookupPage() {
     const [loadingCaptcha, setLoadingCaptcha] = useState(false);
     const [loadingSearch, setLoadingSearch] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [enterNotification, setEnterNotification] = useState<string | null>(null);
     const [result, setResult] = useState<TaxLookupItem[] | null>(null);
     const captchaRequestsRef = useRef(new Map<EntityType, Promise<void>>());
+    const resultCreatedAtRef = useRef<string[]>([]);
+    const enterPressCountRef = useRef(0);
+    const enterNotificationShownRef = useRef(false);
+
+    const resetEnterGuard = () => {
+        enterPressCountRef.current = 0;
+        enterNotificationShownRef.current = false;
+        setEnterNotification(null);
+    };
+
+    const hasRecentResult = () => resultCreatedAtRef.current.some(isCreatedAtWithinFiveMinutes);
+
+    const clearExpiredNotification = (hasRecentCreatedAt: boolean) => {
+        if (!hasRecentCreatedAt && enterNotificationShownRef.current) {
+            enterNotificationShownRef.current = false;
+            setEnterNotification(null);
+        }
+    };
+
+    const handleEnterKey = () => {
+        const hasRecentCreatedAt = hasRecentResult();
+        clearExpiredNotification(hasRecentCreatedAt);
+
+        if (hasRecentCreatedAt) {
+            if (enterNotificationShownRef.current) {
+                return;
+            }
+
+            enterPressCountRef.current += 1;
+
+            if (enterPressCountRef.current > 5) {
+                if (!enterNotificationShownRef.current) {
+                    setEnterNotification("Có dữ liệu rồi nghỉ tay chút bạn ơi!!!");
+                    enterNotificationShownRef.current = true;
+                }
+                return;
+            }
+        }
+
+        void handleSearch();
+    };
 
     const loadCaptcha = useCallback(async (keepError = false) => {
         const existingRequest = captchaRequestsRef.current.get(entityType);
@@ -128,6 +181,12 @@ export default function TaxLookupPage() {
     }, [loadCaptcha]);
 
     const handleSearch = async () => {
+        const hasRecentCreatedAt = hasRecentResult();
+        clearExpiredNotification(hasRecentCreatedAt);
+
+        if (hasRecentCreatedAt && enterNotificationShownRef.current) {
+            return;
+        }
         if (loadingCaptcha || captchaRequestsRef.current.has(entityType)) {
             setError("Vui lòng chờ captcha tải xong trước khi tìm kiếm.");
             return;
@@ -156,7 +215,11 @@ export default function TaxLookupPage() {
                 captcha: captchaValue.trim(),
                 type: entityType,
             });
-            setResult(normalizeLookupResult(res.data));
+            const nextResult = normalizeLookupResult(res.data);
+            setResult(nextResult);
+            resultCreatedAtRef.current = nextResult
+                .map((item) => item.created_at)
+                .filter((createdAt): createdAt is string => Boolean(createdAt));
             loadCaptcha(true);
         } catch (err) {
             const message = await getErrorMessageAsync(err, "Tra cứu thất bại. Vui lòng thử lại.");
@@ -207,9 +270,12 @@ export default function TaxLookupPage() {
                         type="text"
                         placeholder="Nhập mã số thuế"
                         value={taxCode}
-                        onChange={(e) => setTaxCode(e.target.value)}
+                        onChange={(e) => {
+                            resetEnterGuard();
+                            setTaxCode(e.target.value);
+                        }}
                         onKeyDown={(e) => {
-                            if (e.key === "Enter") handleSearch();
+                            if (e.key === "Enter") handleEnterKey();
                         }}
                     />
                 </div>
@@ -234,7 +300,7 @@ export default function TaxLookupPage() {
                             value={captchaValue}
                             onChange={(e) => setCaptchaValue(e.target.value)}
                             onKeyDown={(e) => {
-                                if (e.key === "Enter") handleSearch();
+                                if (e.key === "Enter") handleEnterKey();
                             }}
                         />
                         <button
@@ -257,6 +323,8 @@ export default function TaxLookupPage() {
                     {loadingSearch && <span className={styles.spinner} />}
                     {loadingSearch ? "Đang tra cứu..." : "Tìm kiếm"}
                 </button>
+
+                {enterNotification && <p className={styles.enterNotification}>{enterNotification}</p>}
 
                 {error && <p className={styles.errorMsg}>{error}</p>}
 
