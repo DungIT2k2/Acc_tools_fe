@@ -11,6 +11,7 @@
 
 .container {
   min-height: 100vh;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -332,5 +333,35 @@
 
   .title {
     font-size: 24px;
+  }
+}
+
+@media (max-height: 600px) {
+  .container {
+    padding: 12px;
+  }
+
+  .loginBox {
+    padding: 16px 20px;
+  }
+
+  .bearWrap {
+    margin-bottom: 0;
+  }
+
+  .subTitle {
+    margin-bottom: 12px;
+  }
+
+  .inputGroup {
+    margin-bottom: 10px;
+  }
+
+  .label {
+    margin-bottom: 4px;
+  }
+
+  .button {
+    margin-top: 0;
   }
 }

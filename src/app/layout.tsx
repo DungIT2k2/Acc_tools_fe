@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import "./globals.css";
 import AuthGuard from "../components/AuthGuard";
 import ConnectionStatus from "../components/ConnectionStatus";
 
