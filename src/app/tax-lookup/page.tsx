@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "../../styles/taxLookup.module.css";
 import callApi, { getErrorMessageAsync } from "@/src/lib/axios";
+import Tesseract from "tesseract.js";
 
 type CaptchaInfo = {
     lookupId: string;
@@ -48,26 +49,46 @@ export default function TaxLookupPage() {
     const [loadingSearch, setLoadingSearch] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [result, setResult] = useState<TaxLookupItem[] | null>(null);
+    const captchaRequestsRef = useRef(new Map<EntityType, Promise<void>>());
 
     const loadCaptcha = useCallback(async (keepError = false) => {
+        const existingRequest = captchaRequestsRef.current.get(entityType);
+        if (existingRequest) {
+            return existingRequest;
+        }
+
         setLoadingCaptcha(true);
         if (!keepError) {
             setError(null);
         }
-        try {
-            const infoRes = await callApi.get("/tax/captcha", { params: { type: entityType } });
-            const { lookupId, expiresAt, contentType, image } = infoRes.data as CaptchaResponse;
-            const url = `data:${contentType};base64,${image}`;
 
-            setCaptchaInfo({ lookupId, expiresAt });
-            setCaptchaImageUrl(url);
-            setCaptchaValue("");
-        } catch (err) {
-            const message = await getErrorMessageAsync(err, "Không thể tải captcha. Vui lòng thử lại.");
-            setError(message);
-        } finally {
-            setLoadingCaptcha(false);
-        }
+        const request = (async () => {
+            try {
+                const infoRes = await callApi.get("/tax/captcha", { params: { type: entityType } });
+                const { lookupId, expiresAt, contentType, image } = infoRes.data as CaptchaResponse;
+                const url = `data:${contentType};base64,${image}`;
+                const { data: { text } } = await Tesseract.recognize(url, "eng");
+
+                setCaptchaInfo({ lookupId, expiresAt });
+                setCaptchaImageUrl(url);
+                setCaptchaValue(text);
+            } catch (err) {
+                const message = await getErrorMessageAsync(err, "Không thể tải captcha. Vui lòng thử lại.");
+                setError(message);
+            } finally {
+                setLoadingCaptcha(false);
+            }
+        })();
+
+        captchaRequestsRef.current.set(entityType, request);
+        const clearRequest = () => {
+            if (captchaRequestsRef.current.get(entityType) === request) {
+                captchaRequestsRef.current.delete(entityType);
+            }
+        };
+        void request.then(clearRequest, clearRequest);
+
+        return request;
     }, [entityType]);
 
     useEffect(() => {
