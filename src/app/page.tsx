@@ -5,26 +5,7 @@ import styles from "../styles/Login.module.css";
 import callApi from "../lib/axios";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
-import { decodeTokenPayload } from "../lib/jwt";
-
-type JwtPayload = {
-  exp?: number;
-};
-
-function isTokenValid(token: string) {
-  const payload = decodeTokenPayload<JwtPayload>(token);
-
-  if (!payload) {
-    return false;
-  }
-
-  if (typeof payload.exp !== "number") {
-    return true;
-  }
-
-  const nowInSeconds = Math.floor(Date.now() / 1000);
-  return payload.exp > nowInSeconds;
-}
+import { isTokenValid } from "../lib/jwt";
 
 export default function Home() {
   const [username, setUsername] = useState("");

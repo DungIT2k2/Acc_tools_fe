@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import AuthGuard from "../components/AuthGuard";
 import ConnectionStatus from "../components/ConnectionStatus";
 
 export const metadata: Metadata = {
@@ -13,8 +14,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <ConnectionStatus />
-        {children}
+        <AuthGuard>
+          <ConnectionStatus />
+          {children}
+        </AuthGuard>
       </body>
     </html>
   );

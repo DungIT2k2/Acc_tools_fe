@@ -15,3 +15,19 @@ export function decodeTokenPayload<T = Record<string, unknown>>(token: string): 
     return null;
   }
 }
+
+type JwtPayload = {
+  exp?: number;
+};
+
+export function getTokenExpiry(token: string): number | null {
+  const payload = decodeTokenPayload<JwtPayload>(token);
+
+  return typeof payload?.exp === "number" ? payload.exp : null;
+}
+
+export function isTokenValid(token: string): boolean {
+  const expiry = getTokenExpiry(token);
+
+  return expiry !== null && expiry > Math.floor(Date.now() / 1000);
+}
