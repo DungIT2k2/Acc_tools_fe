@@ -95,6 +95,7 @@ export default function Home() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Nhập tài khoản"
+                autoComplete="username"
                 required
               />
             </div>
@@ -109,6 +110,7 @@ export default function Home() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Nhập mật khẩu"
+                  autoComplete="current-password"
                   required
                 />
 
