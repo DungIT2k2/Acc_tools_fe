@@ -647,6 +647,12 @@ export default function InvoicePage() {
     const [viewInvoiceIsSco, setViewInvoiceIsSco] = useState(false);
     const [isAutoMode, setIsAutoMode] = useState(false);
     const [isRegisteringAutoTask, setIsRegisteringAutoTask] = useState(false);
+    const [autoTaskPrompt, setAutoTaskPrompt] = useState<{
+        featureId: number;
+        payload: Record<string, unknown>;
+        title: string;
+        suggestion: string;
+    } | null>(null);
     const [isTaskQueueModalOpen, setIsTaskQueueModalOpen] = useState(false);
     const [taskQueueUserGroups, setTaskQueueUserGroups] = useState<TaskQueueUserGroup[]>([]);
     const [isLoadingTaskQueue, setIsLoadingTaskQueue] = useState(false);
@@ -1108,6 +1114,16 @@ export default function InvoicePage() {
             setPurchaseError(message);
             setInvoiceData(null);
             setHasSearchedPurchase(false);
+
+            const featureConfig = INVOICE_FEATURES.find((feature) => feature.id === selectedFeature);
+            if (featureConfig) {
+                openAutoTaskPrompt(
+                    selectedFeature,
+                    { from: params.from, to: params.to },
+                    "Tự động lấy dữ liệu hóa đơn",
+                    "Hệ thống thuế hiện đang nghẽn hoặc gặp lỗi khi lấy dữ liệu ngay. Bạn có muốn đăng ký tự động lấy dữ liệu không? Khi trạng thái hoàn thành, dữ liệu đã được lấy xong và bạn có thể tìm kiếm ngay lập tức.",
+                );
+            }
         } finally {
             setIsSearchingPurchase(false);
         }
@@ -1153,6 +1169,16 @@ export default function InvoicePage() {
             setPurchaseError(message);
             setInvoiceData(null);
             setHasSearchedPurchase(false);
+
+            const currentFeatureConfig = INVOICE_FEATURES.find((feature) => feature.id === selectedFeature);
+            if (currentFeatureConfig) {
+                openAutoTaskPrompt(
+                    selectedFeature,
+                    { from: params.from, to: params.to, renew: true },
+                    "Tự động đồng bộ dữ liệu mới nhất",
+                    "Hệ thống thuế hiện đang nghẽn hoặc gặp lỗi khi lấy dữ liệu ngay. Bạn có muốn đăng ký tự động lấy dữ liệu không? Khi trạng thái hoàn thành, dữ liệu đã được đồng bộ xong và bạn có thể tìm kiếm ngay lập tức.",
+                );
+            }
         } finally {
             setIsSearchingPurchase(false);
         }
@@ -1538,6 +1564,37 @@ export default function InvoicePage() {
             setIsClearingTaskQueueHistory(false);
         }
     };
+
+    const openAutoTaskPrompt = useCallback((featureId: number, payload: Record<string, unknown>, title: string, suggestion: string) => {
+        setAutoTaskPrompt({
+            featureId,
+            payload,
+            title,
+            suggestion,
+        });
+    }, []);
+
+    const closeAutoTaskPrompt = useCallback(() => {
+        setAutoTaskPrompt(null);
+    }, []);
+
+    const confirmAutoTaskRegistration = useCallback(async () => {
+        if (!autoTaskPrompt) {
+            return;
+        }
+
+        const featureConfig = INVOICE_FEATURES.find((feature) => feature.id === autoTaskPrompt.featureId);
+        if (!featureConfig) {
+            setPurchaseError("Chức năng chưa được cấu hình.");
+            closeAutoTaskPrompt();
+            return;
+        }
+
+        const success = await registerAutoTaskQueue(featureConfig.apiEndpoint, autoTaskPrompt.payload);
+        if (success) {
+            closeAutoTaskPrompt();
+        }
+    }, [autoTaskPrompt, closeAutoTaskPrompt]);
 
     const renderFeatureContent = () => {
         const featureConfig = INVOICE_FEATURES.find((f) => f.id === selectedFeature);
@@ -2173,6 +2230,33 @@ export default function InvoicePage() {
                                         ))}
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </div>
+            ) : null}
+
+            {autoTaskPrompt ? (
+                <div className={styles.compareResultOverlay}>
+                    <div className={styles.compareModal}>
+                        <h3>{autoTaskPrompt.title}</h3>
+                        <p>{autoTaskPrompt.suggestion}</p>
+                        <div className={styles.compareModalActions}>
+                            <button
+                                type="button"
+                                className={styles.compareModalCancelButton}
+                                onClick={closeAutoTaskPrompt}
+                                disabled={isRegisteringAutoTask}
+                            >
+                                Không, cảm ơn
+                            </button>
+                            <button
+                                type="button"
+                                className={styles.compareModalConfirmButton}
+                                onClick={confirmAutoTaskRegistration}
+                                disabled={isRegisteringAutoTask}
+                            >
+                                {isRegisteringAutoTask ? "Đang đăng ký..." : "Đồng ý đăng ký"}
+                            </button>
                         </div>
                     </div>
                 </div>
