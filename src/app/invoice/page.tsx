@@ -284,8 +284,21 @@ function normalizeInvoiceResponse(data: unknown, keys: string[]): Record<string,
 
     const response = data as Record<string, unknown>;
 
+    // STT tự đánh số ở FE, dùng chung một bộ đếm chạy liên tục qua các mục trong dataKeys
+    let sttCounter = 0;
+
     keys.forEach((key) => {
-        result[key] = normalizeInvoiceSectionData(response[key]);
+        const sectionData = normalizeInvoiceSectionData(response[key]);
+
+        if (isInvoiceSectionDataErrored(sectionData)) {
+            result[key] = sectionData;
+            return;
+        }
+
+        result[key] = (sectionData as InvoiceRow[]).map((row) => {
+            sttCounter += 1;
+            return { ...row, stt: sttCounter };
+        });
     });
 
     return result;
