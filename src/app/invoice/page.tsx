@@ -197,6 +197,11 @@ function groupTaskQueueItems(items: TaskQueueItem[]): TaskQueueGroup[] {
         }
     });
 
+    // Trong mỗi nhóm: tác vụ mới nhất (createdAt lớn nhất) hiển thị trước
+    groups.forEach((group) => {
+        group.items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    });
+
     return groups;
 }
 
