@@ -5,8 +5,14 @@ import { useRouter } from "next/navigation";
 import styles from "../../styles/transcoding.module.css";
 import callApi from "@/src/lib/axios";
 
+const TRANSCODING_TYPES = [
+    { value: "VniToUni", label: "VNI-Times → Unicode" },
+    { value: "UniToVni", label: "Unicode → VNI-Times" },
+];
+
 export default function TranscodingPage() {
     const [file, setFile] = useState<File | null>(null);
+    const [type, setType] = useState("VniToUni");
     const [isDragOver, setIsDragOver] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -64,6 +70,7 @@ export default function TranscodingPage() {
         try {
             const formData = new FormData();
             formData.append("File", file);
+            formData.append("type", type);
 
             const response = await callApi.post("/file/transcoding", formData, {
                 headers: { "Content-Type": "multipart/form-data" },
@@ -156,6 +163,36 @@ export default function TranscodingPage() {
                         className={styles.fileInput}
                         onChange={handleInputChange}
                     />
+                </div>
+
+                {/* Type select */}
+                <div style={{ margin: "16px 0", textAlign: "left" }}>
+                    <label
+                        htmlFor="transcoding-type"
+                        style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 6 }}
+                    >
+                        Loại chuyển mã
+                    </label>
+                    <select
+                        id="transcoding-type"
+                        value={type}
+                        onChange={(e) => setType(e.target.value)}
+                        disabled={loading}
+                        style={{
+                            width: "100%",
+                            padding: "10px 12px",
+                            fontSize: 14,
+                            borderRadius: 8,
+                            border: "1px solid #cbd5e1",
+                            background: "#fff",
+                        }}
+                    >
+                        {TRANSCODING_TYPES.map((t) => (
+                            <option key={t.value} value={t.value}>
+                                {t.label}
+                            </option>
+                        ))}
+                    </select>
                 </div>
 
                 {/* Submit button */}
