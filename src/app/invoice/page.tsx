@@ -545,7 +545,12 @@ function getInclusiveMonthCount(startDate: Date, endDate: Date) {
     return (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth()) + 1;
 }
 
-function buildPurchaseInvoiceMonthParams(fromValue: string, toValue: string) {
+type PurchaseInvoicePeriod = {
+    from: string;
+    to: string;
+};
+
+function buildPurchaseInvoiceMonthPeriods(fromValue: string, toValue: string): PurchaseInvoicePeriod[] {
     const fromDate = parseInputDate(fromValue);
     const toDate = parseInputDate(toValue);
 
@@ -553,8 +558,7 @@ function buildPurchaseInvoiceMonthParams(fromValue: string, toValue: string) {
     const endMonth = getStartOfMonth(toDate);
     const monthCount = getInclusiveMonthCount(startMonth, endMonth);
 
-    const fromDates: string[] = [];
-    const toDates: string[] = [];
+    const periods: PurchaseInvoicePeriod[] = [];
 
     for (let index = monthCount - 1; index >= 0; index -= 1) {
         const currentMonth = new Date(startMonth.getFullYear(), startMonth.getMonth() + index, 1);
@@ -568,15 +572,38 @@ function buildPurchaseInvoiceMonthParams(fromValue: string, toValue: string) {
         const currentFromDate = isFromMonth ? fromDate : getStartOfMonth(currentMonth);
         const currentToDate = isToMonth ? toDate : getEndOfMonth(currentMonth);
 
-        fromDates.push(formatDateForApi(currentFromDate));
-        toDates.push(formatDateForApi(currentToDate));
+        periods.push({
+            from: formatDateForApi(currentFromDate),
+            to: formatDateForApi(currentToDate),
+        });
     }
 
+    return periods;
+}
+
+function joinPurchaseInvoicePeriods(periods: PurchaseInvoicePeriod[]) {
     return {
-        from: fromDates.join(","),
-        to: toDates.join(","),
+        from: periods.map((period) => period.from).join(","),
+        to: periods.map((period) => period.to).join(","),
     };
 }
+
+function buildPurchaseInvoiceMonthParams(fromValue: string, toValue: string) {
+    return joinPurchaseInvoicePeriods(buildPurchaseInvoiceMonthPeriods(fromValue, toValue));
+}
+
+// Loại hoá đơn truyền vào renewType (key) và tên hiển thị cho user (label), theo từng tính năng.
+const RENEW_CACHE_TYPE_OPTIONS_BY_FEATURE_ID: Record<number, Array<{ key: string; label: string }>> = {
+    1: [
+        { key: "invoiceIssued", label: "Đã cấp mã hoá đơn" },
+        { key: "invoiceNoCode", label: "Cục Thuế đã nhận không mã" },
+        { key: "invoiceCashRegister", label: "Cục Thuế đã nhận hoá đơn có mã khởi tạo từ máy tính tiền" },
+    ],
+    2: [
+        { key: "invoiceElectronic", label: "Hoá đơn điện tử" },
+        { key: "invoiceCashRegister", label: "Hoá đơn có mã khởi tạo từ máy tính tiền" },
+    ],
+};
 
 function normalizeRecentLoggedInvoiceAccounts(data: unknown): RecentLoggedInvoiceAccount[] {
     if (!Array.isArray(data)) {
@@ -641,6 +668,7 @@ export default function InvoicePage() {
     const [purchaseToDate, setPurchaseToDate] = useState(initialDates.to);
     const [hasSearchedPurchase, setHasSearchedPurchase] = useState(false);
     const [purchaseError, setPurchaseError] = useState("");
+    const [syncSuccessMessage, setSyncSuccessMessage] = useState("");
     const [isSearchingPurchase, setIsSearchingPurchase] = useState(false);
     const [isExportingPurchase, setIsExportingPurchase] = useState(false);
     const [isLoadingInvoiceDetails, setIsLoadingInvoiceDetails] = useState(false);
@@ -670,6 +698,20 @@ export default function InvoicePage() {
         payload: Record<string, unknown>;
         title: string;
         suggestion: string;
+    } | null>(null);
+    const [renewModal, setRenewModal] = useState<{
+        periods: PurchaseInvoicePeriod[];
+        selectedPeriodIndexes: number[];
+        isAllPeriods: boolean;
+        selectedTypes: string[];
+        isAllTypes: boolean;
+    } | null>(null);
+    // Lưu lựa chọn lần đồng bộ trước (chỉ trong bộ nhớ) - mất khi đổi loại hoá đơn hoặc rời trang.
+    const [lastRenewSelection, setLastRenewSelection] = useState<{
+        isAllPeriods: boolean;
+        periodKeys: string[];
+        isAllTypes: boolean;
+        selectedTypes: string[];
     } | null>(null);
     const [isTaskQueueModalOpen, setIsTaskQueueModalOpen] = useState(false);
     const [taskQueueUserGroups, setTaskQueueUserGroups] = useState<TaskQueueUserGroup[]>([]);
@@ -1113,6 +1155,7 @@ export default function InvoicePage() {
         try {
             setIsSearchingPurchase(true);
             setPurchaseError("");
+            setSyncSuccessMessage("");
 
             const res = await callApi.get<unknown>(featureConfig.apiEndpoint, {
                 params: {
@@ -1147,33 +1190,141 @@ export default function InvoicePage() {
         }
     };
 
-    const handleSearchPurchaseInvoicesWithRenew = async () => {
-        const params = getValidatedPurchaseInvoiceParams();
-        if (!params) {
+    const handleSearchPurchaseInvoicesWithRenew = () => {
+        if (!getValidatedPurchaseInvoiceParams()) {
+            return;
+        }
+
+        const periods = buildPurchaseInvoiceMonthPeriods(purchaseFromDate, purchaseToDate);
+        const last = lastRenewSelection;
+        const restoredIndexes = last
+            ? periods.flatMap((period, index) => (last.periodKeys.includes(`${period.from}-${period.to}`) ? [index] : []))
+            : [];
+        const isAllPeriods = !last || last.isAllPeriods || restoredIndexes.length === 0;
+        const validTypeKeys = (RENEW_CACHE_TYPE_OPTIONS_BY_FEATURE_ID[selectedFeature] ?? []).map((option) => option.key);
+        const restoredTypes = last ? last.selectedTypes.filter((key) => validTypeKeys.includes(key)) : [];
+
+        setRenewModal({
+            periods,
+            selectedPeriodIndexes: isAllPeriods ? [] : restoredIndexes,
+            isAllPeriods,
+            selectedTypes: restoredTypes,
+            isAllTypes: !last || last.isAllTypes,
+        });
+    };
+
+    const closeRenewModal = () => setRenewModal(null);
+
+    useEffect(() => {
+        setLastRenewSelection(null);
+        setSyncSuccessMessage("");
+    }, [selectedFeature]);
+
+    const toggleRenewPeriod = (index: number) => {
+        setRenewModal((prev) => {
+            if (!prev || prev.isAllPeriods) {
+                return prev;
+            }
+            const selected = prev.selectedPeriodIndexes.includes(index)
+                ? prev.selectedPeriodIndexes.filter((item) => item !== index)
+                : [...prev.selectedPeriodIndexes, index];
+            return { ...prev, selectedPeriodIndexes: selected };
+        });
+    };
+
+    const toggleRenewType = (key: string) => {
+        setRenewModal((prev) => {
+            if (!prev || prev.isAllTypes) {
+                return prev;
+            }
+            return { ...prev, selectedTypes: [key] };
+        });
+    };
+
+    const handleConfirmSearchWithRenew = async () => {
+        if (!renewModal) {
             return;
         }
 
         const featureConfig = INVOICE_FEATURES.find((f) => f.id === selectedFeature);
         if (!featureConfig) {
             setPurchaseError("Chức năng chưa được cấu hình.");
+            closeRenewModal();
             return;
         }
 
+        const selectedPeriods = renewModal.isAllPeriods
+            ? renewModal.periods
+            : renewModal.periods.filter((_, index) => renewModal.selectedPeriodIndexes.includes(index));
+        if (selectedPeriods.length === 0 || (!renewModal.isAllTypes && renewModal.selectedTypes.length === 0)) {
+            return;
+        }
+
+        setLastRenewSelection({
+            isAllPeriods: renewModal.isAllPeriods,
+            periodKeys: selectedPeriods.map((period) => `${period.from}-${period.to}`),
+            isAllTypes: renewModal.isAllTypes,
+            selectedTypes: renewModal.selectedTypes,
+        });
+
+        const { from, to } = joinPurchaseInvoicePeriods(selectedPeriods);
+        const renewParams: Record<string, unknown> = { from, to, renew: true };
+        if (!renewModal.isAllTypes) {
+            renewParams.renewType = renewModal.selectedTypes.join(",");
+        }
+
+        closeRenewModal();
+
         if (isAutoMode) {
-            await registerAutoTaskQueue(featureConfig.apiEndpoint, { from: params.from, to: params.to, renew: true });
+            await registerAutoTaskQueue(featureConfig.apiEndpoint, renewParams);
             return;
         }
 
         try {
             setIsSearchingPurchase(true);
             setPurchaseError("");
+            setSyncSuccessMessage("");
 
+            let syncResponseData: unknown;
+            try {
+                const syncRes = await callApi.get<unknown>(featureConfig.apiEndpoint, {
+                    params: renewParams,
+                });
+                syncResponseData = syncRes.data;
+            } catch (err: unknown) {
+                const message = await getErrorMessageAsync(err, "Không lấy được dữ liệu hoá đơn");
+                setPurchaseError(message);
+                setInvoiceData(null);
+                setHasSearchedPurchase(false);
+
+                openAutoTaskPrompt(
+                    selectedFeature,
+                    renewParams,
+                    "Tự động đồng bộ dữ liệu mới nhất",
+                    "Hệ thống thuế hiện đang nghẽn hoặc gặp lỗi khi lấy dữ liệu ngay. Bạn có muốn đăng ký tự động lấy dữ liệu không? Khi trạng thái hoàn thành, dữ liệu đã được đồng bộ xong và bạn có thể tìm kiếm ngay lập tức.",
+                );
+                return;
+            }
+
+            const typeOptions = RENEW_CACHE_TYPE_OPTIONS_BY_FEATURE_ID[selectedFeature] ?? [];
+            const syncedTypeOptions = renewModal.isAllTypes
+                ? typeOptions
+                : typeOptions.filter((option) => renewModal.selectedTypes.includes(option.key));
+            const syncedData = normalizeInvoiceResponse(syncResponseData, syncedTypeOptions.map((option) => `${option.key}Data`));
+            const typeSummaries = syncedTypeOptions.map((option) => {
+                const count = resolveSectionTable(syncedData[`${option.key}Data`], "").count;
+                return { label: option.label, count };
+            });
+            const totalSynced = typeSummaries.reduce((sum, item) => sum + item.count, 0);
+            const syncedFrom = selectedPeriods[selectedPeriods.length - 1].from;
+            const syncedTo = selectedPeriods[0].to;
+            const syncedTypeText = typeSummaries.map((item) => `${item.label}`).join(", ");
+            const syncMessage = `Đã đồng bộ thành công (${totalSynced}) hoá đơn loại "${syncedTypeText}" từ ${syncedFrom} đến ${syncedTo}`;
+
+            // Đồng bộ xong: tìm kiếm bình thường với toàn bộ khoảng ngày đang chọn.
+            const searchParams = buildPurchaseInvoiceMonthParams(purchaseFromDate, purchaseToDate);
             const res = await callApi.get<unknown>(featureConfig.apiEndpoint, {
-                params: {
-                    from: params.from,
-                    to: params.to,
-                    renew: true,
-                },
+                params: { from: searchParams.from, to: searchParams.to },
             });
 
             const normalizedInvoiceData = normalizeInvoiceResponse(res.data, featureConfig.dataKeys.map((item) => item.key));
@@ -1182,21 +1333,12 @@ export default function InvoicePage() {
             const sectionErrorMessage = buildSectionErrorMessage(normalizedInvoiceData, featureConfig.dataKeys);
             setPurchaseError(sectionErrorMessage);
             setHasSearchedPurchase(true);
+            setSyncSuccessMessage(syncMessage);
         } catch (err: unknown) {
             const message = await getErrorMessageAsync(err, "Không lấy được dữ liệu hoá đơn");
             setPurchaseError(message);
             setInvoiceData(null);
             setHasSearchedPurchase(false);
-
-            const currentFeatureConfig = INVOICE_FEATURES.find((feature) => feature.id === selectedFeature);
-            if (currentFeatureConfig) {
-                openAutoTaskPrompt(
-                    selectedFeature,
-                    { from: params.from, to: params.to, renew: true },
-                    "Tự động đồng bộ dữ liệu mới nhất",
-                    "Hệ thống thuế hiện đang nghẽn hoặc gặp lỗi khi lấy dữ liệu ngay. Bạn có muốn đăng ký tự động lấy dữ liệu không? Khi trạng thái hoàn thành, dữ liệu đã được đồng bộ xong và bạn có thể tìm kiếm ngay lập tức.",
-                );
-            }
         } finally {
             setIsSearchingPurchase(false);
         }
@@ -1684,14 +1826,14 @@ export default function InvoicePage() {
                         >
                             {isAutoMode
                                 ? (isRegisteringAutoTask ? "Đang đăng ký..." : "Đăng ký tự động Đồng bộ dữ liệu mới nhất")
-                                : (isSearchingPurchase ? "Đang đồng bộ..." : "Tìm kiếm (Đồng bộ dữ liệu mới nhất)")}
+                                : (isSearchingPurchase ? "Đang đồng bộ..." : "Đồng bộ dữ liệu mới nhất")}
                         </button>
                         <button
                             type="button"
                             className={`${styles.autoModeButton} ${isAutoMode ? styles.autoModeButtonActive : ""}`}
                             onClick={() => setIsAutoMode((prev) => !prev)}
                             aria-pressed={isAutoMode}
-                            title="Khi bật, các thao tác Tìm kiếm / Tìm kiếm (Đồng bộ) / Xem hoá đơn sẽ đăng ký tác vụ tự động thay vì gọi API ngay"
+                            title="Khi bật, các thao tác Tìm kiếm / Đồng bộ / Xem hoá đơn sẽ đăng ký tác vụ tự động thay vì gọi API ngay"
                         >
                             {isAutoMode ? "Đăng ký tự động: Bật" : "Đăng ký tự động: Tắt"}
                         </button>
@@ -1730,6 +1872,7 @@ export default function InvoicePage() {
                 </div>
 
                 {purchaseError ? <div className={styles.errorMessage}>{purchaseError}</div> : null}
+                {syncSuccessMessage ? <div className={styles.successMessage}>{syncSuccessMessage}</div> : null}
 
                 {isMobileView && hasSearchedPurchase && invoiceData ? (
                     <div className={styles.mobileInfoBox}>
@@ -2248,6 +2391,78 @@ export default function InvoicePage() {
                                         ))}
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </div>
+            ) : null}
+
+            {renewModal ? (
+                <div className={styles.compareResultOverlay}>
+                    <div className={styles.compareModal}>
+                        <h3>Đồng bộ dữ liệu mới nhất</h3>
+
+                        <p><strong>1. Khoảng thời gian</strong></p>
+                        <label className={styles.renewOption}>
+                            <input
+                                type="checkbox"
+                                checked={renewModal.isAllPeriods}
+                                onChange={(e) => setRenewModal((prev) => (prev ? { ...prev, isAllPeriods: e.target.checked } : prev))}
+                            />
+                            <span>Tất cả</span>
+                        </label>
+                        <div className={styles.renewOptionList}>
+                            {renewModal.periods.map((period, index) => (
+                                <label key={`${period.from}-${period.to}`} className={styles.renewOption}>
+                                    <input
+                                        type="checkbox"
+                                        disabled={renewModal.isAllPeriods}
+                                        checked={renewModal.isAllPeriods || renewModal.selectedPeriodIndexes.includes(index)}
+                                        onChange={() => toggleRenewPeriod(index)}
+                                    />
+                                    <span>{period.from} - {period.to}</span>
+                                </label>
+                            ))}
+                        </div>
+
+                        <p><strong>2. Loại hoá đơn</strong></p>
+                        <label className={styles.renewOption}>
+                            <input
+                                type="checkbox"
+                                checked={renewModal.isAllTypes}
+                                onChange={(e) => setRenewModal((prev) => (prev ? { ...prev, isAllTypes: e.target.checked } : prev))}
+                            />
+                            <span>Tất cả</span>
+                        </label>
+                        <div className={styles.renewOptionList}>
+                            {(RENEW_CACHE_TYPE_OPTIONS_BY_FEATURE_ID[selectedFeature] ?? []).map((option) => (
+                                <label key={option.key} className={styles.renewOption}>
+                                    <input
+                                        type="radio"
+                                        name="renewType"
+                                        disabled={renewModal.isAllTypes}
+                                        checked={!renewModal.isAllTypes && renewModal.selectedTypes.includes(option.key)}
+                                        onChange={() => toggleRenewType(option.key)}
+                                    />
+                                    <span>{option.label}</span>
+                                </label>
+                            ))}
+                        </div>
+
+                        <div className={styles.compareModalActions}>
+                            <button type="button" className={styles.compareModalCancelButton} onClick={closeRenewModal}>
+                                Huỷ
+                            </button>
+                            <button
+                                type="button"
+                                className={styles.compareModalConfirmButton}
+                                onClick={handleConfirmSearchWithRenew}
+                                disabled={
+                                    (!renewModal.isAllPeriods && renewModal.selectedPeriodIndexes.length === 0) ||
+                                    (!renewModal.isAllTypes && renewModal.selectedTypes.length === 0)
+                                }
+                            >
+                                {isAutoMode ? "Đăng ký tự động" : "Đồng bộ"}
+                            </button>
                         </div>
                     </div>
                 </div>

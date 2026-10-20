@@ -1797,3 +1797,30 @@
     padding: 14px;
   }
 }
+
+.renewOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  color: #0f172a;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.renewOptionList {
+  max-height: 180px;
+  overflow-y: auto;
+  padding-left: 20px;
+  margin-bottom: 8px;
+}
+
+.successMessage {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+  background: #f0fdf4;
+  color: #166534;
+  font-size: 14px;
+}
