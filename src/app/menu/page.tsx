@@ -40,11 +40,6 @@ export default function MenuPage() {
             path: "/tax-lookup",
             icon: "🔍",
         },
-        {
-            name: "Tra cứu hồ sơ",
-            path: "/nps-lookup",
-            icon: "📁",
-        },
         // {
         //     name: "Chức năng 4",
         //     path: "/module-4",
