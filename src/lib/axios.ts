@@ -26,7 +26,8 @@ callApi.interceptors.response.use(
   (response) => response,
   (error) => {
     // Handle error toàn cục, ví dụ alert
-    if (error.response?.status === 401) {
+    // 401 do hết phiên Dịch vụ công Cục Thuế thì để trang NPS tự xử lý, không đăng xuất app
+    if (error.response?.status === 401 && !isNpsSessionExpiredError(error)) {
       localStorage.removeItem("access_token");
       window.location.href = "/";
     }
@@ -60,6 +61,16 @@ function readMessageFromData(data: unknown): string | null {
   }
 
   return null;
+}
+
+// Backend trả 401 cho cả token app lẫn phiên Dịch vụ công, phân biệt bằng message
+export function isNpsSessionExpiredError(err: unknown): boolean {
+  const anyErr = err as { response?: { status?: number; data?: unknown } };
+  if (anyErr?.response?.status !== 401) {
+    return false;
+  }
+  const message = readMessageFromData(anyErr.response.data);
+  return Boolean(message && message.includes("Dịch vụ công"));
 }
 
   export function getErrorMessage(err: unknown, fallback = "Lỗi"): string {
