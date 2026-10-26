@@ -15,9 +15,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <ConnectionStatus>
-          <AuthGuard>{children}</AuthGuard>
-        </ConnectionStatus>
+        <ConnectionStatus />
+        <AuthGuard>{children}</AuthGuard>
       </body>
     </html>
   );

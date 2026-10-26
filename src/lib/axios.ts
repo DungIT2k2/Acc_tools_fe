@@ -1,4 +1,5 @@
 import axios from "axios";
+import { DEFAULT_MAINTENANCE_MESSAGE, fetchSystemStatus, redirectToMaintenance } from "./systemStatus";
 
 const callApi = axios.create({
   baseURL: process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000",
@@ -10,8 +11,15 @@ const callApi = axios.create({
 
 // Optional: interceptors để log hoặc handle error toàn cục
 callApi.interceptors.request.use(
-  (config) => {
+  async (config) => {
     if (typeof window !== "undefined") {
+      // Backend có thể vào bảo trì bất cứ lúc nào nên kiểm tra trước mỗi request
+      const systemStatus = await fetchSystemStatus({ useCache: true });
+      if (systemStatus.status === "maintenance") {
+        redirectToMaintenance();
+        return Promise.reject(new Error(systemStatus.message || DEFAULT_MAINTENANCE_MESSAGE));
+      }
+
       const token = localStorage.getItem("access_token");
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
@@ -26,6 +34,14 @@ callApi.interceptors.response.use(
   (response) => response,
   (error) => {
     // Handle error toàn cục, ví dụ alert
+    // Dự phòng trường hợp backend chuyển sang bảo trì ngay sau bước kiểm tra
+    if (error.response?.status === 503) {
+      void fetchSystemStatus().then((result) => {
+        if (result.status === "maintenance") {
+          redirectToMaintenance();
+        }
+      });
+    }
     if (error.response?.status === 401) {
       localStorage.removeItem("access_token");
       window.location.href = "/";

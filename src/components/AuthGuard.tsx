@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { getTokenExpiry, isTokenValid } from "../lib/jwt";
+import { MAINTENANCE_PATH } from "../lib/systemStatus";
 
 type AuthGuardProps = {
   children: React.ReactNode;
@@ -11,11 +12,11 @@ type AuthGuardProps = {
 export default function AuthGuard({ children }: AuthGuardProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const isLoginPage = pathname === "/";
+  const isPublicPage = pathname === "/" || pathname === MAINTENANCE_PATH;
   const [authorizedPathname, setAuthorizedPathname] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isLoginPage) {
+    if (isPublicPage) {
       return;
     }
 
@@ -41,7 +42,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
       window.clearTimeout(authorizationId);
       window.clearTimeout(timeoutId);
     };
-  }, [isLoginPage, pathname, router]);
+  }, [isPublicPage, pathname, router]);
 
-  return isLoginPage || authorizedPathname === pathname ? children : null;
+  return isPublicPage || authorizedPathname === pathname ? children : null;
 }
