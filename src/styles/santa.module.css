@@ -1,0 +1,142 @@
+.face {
+  position: relative;
+  width: 104px;
+  height: 100px;
+}
+
+.head {
+  position: absolute;
+  top: 26px;
+  left: 12px;
+  width: 80px;
+  height: 68px;
+  border-radius: 50% 50% 45% 45%;
+  background: linear-gradient(180deg, #fbd5b0 0%, #f2b98c 100%);
+  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.06);
+  z-index: 2;
+}
+
+.hat {
+  position: absolute;
+  top: 9px;
+  left: 14px;
+  width: 76px;
+  height: 40px;
+  border-radius: 50% 50% 8px 8px / 100% 100% 8px 8px;
+  background: linear-gradient(180deg, #e53935 0%, #c62828 100%);
+  z-index: 3;
+}
+
+.pom {
+  position: absolute;
+  top: 0;
+  left: 41px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  z-index: 3;
+}
+
+.trim {
+  position: absolute;
+  top: 38px;
+  left: 8px;
+  width: 88px;
+  height: 15px;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+  z-index: 4;
+}
+
+.eye {
+  position: absolute;
+  top: 29px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #1f2d3d;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.eyeLeft {
+  left: 21px;
+}
+
+.eyeRight {
+  right: 21px;
+}
+
+.nose {
+  position: absolute;
+  top: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 12px;
+  border-radius: 50%;
+  background: #e5736b;
+}
+
+.beard {
+  position: absolute;
+  top: 66px;
+  left: 14px;
+  width: 76px;
+  height: 34px;
+  border-radius: 30% 30% 50% 50% / 25% 25% 75% 75%;
+  background: #ffffff;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
+  z-index: 3;
+}
+
+.mouth {
+  position: absolute;
+  top: 76px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 7px;
+  border-radius: 0 0 14px 14px;
+  background: #c0504d;
+  z-index: 4;
+}
+
+.mitten {
+  position: absolute;
+  top: 66px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 3px solid #c62828;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.18);
+  z-index: 6;
+  transition: top 0.24s ease, transform 0.24s ease;
+}
+
+.mittenLeft {
+  left: 20px;
+}
+
+.mittenRight {
+  right: 20px;
+}
+
+.cover .mittenLeft {
+  top: 45px;
+  transform: rotate(-16deg);
+}
+
+.cover .mittenRight {
+  top: 45px;
+  transform: rotate(16deg);
+}
+
+.cover .eye {
+  transform: translateY(4px);
+  opacity: 0;
+}
+

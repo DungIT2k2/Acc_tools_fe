@@ -611,3 +611,236 @@
     text-align: left;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   Modern theme (đồng bộ menu / login / invoice)
+   ═══════════════════════════════════════════════════════════ */
+.page {
+  background:
+    radial-gradient(circle at 0% 0%, rgba(29, 79, 134, 0.14), transparent 42%),
+    radial-gradient(circle at 100% 100%, rgba(33, 165, 138, 0.14), transparent 38%),
+    linear-gradient(150deg, #f7fbff 0%, #ebf1f8 55%, #dfe8f2 100%);
+  background-attachment: fixed;
+  color: #172033;
+}
+
+.headerCard,
+.uploadSection,
+.mappingSection {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  border-color: #d7e0ea;
+  box-shadow: 0 14px 38px rgba(17, 50, 85, 0.1);
+}
+
+.headerCard {
+  background: #ffffff;
+}
+
+.headerCard::before,
+.uploadSection::before,
+.mappingSection::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #1d4f86, #21a58a);
+}
+
+.headerCard h1 {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #0f2748;
+}
+
+.sectionTop h2,
+.mappingSection h2 {
+  color: #15365f;
+  font-weight: 700;
+}
+
+/* ---- Buttons ---- */
+.menuButton,
+.addButton,
+.filePickerLabel,
+.textButton,
+.addColumnButton,
+.removePairButton,
+.compareButton,
+.exportButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: inherit;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease,
+    border-color 0.18s ease, color 0.18s ease, filter 0.18s ease;
+}
+
+.menuButton {
+  border-color: #c3d6ea;
+  background: #eaf3ff;
+  color: #1d4f86;
+  border-radius: 999px;
+}
+
+.menuButton:hover {
+  background: #1d4f86;
+  border-color: #1d4f86;
+  color: #ffffff;
+  transform: translateX(-2px);
+}
+
+.addButton,
+.addColumnButton,
+.compareButton {
+  background: linear-gradient(135deg, #1d4f86, #15365f);
+  box-shadow: 0 6px 16px rgba(21, 54, 95, 0.22);
+}
+
+.addButton:hover:not(:disabled),
+.addColumnButton:hover:not(:disabled),
+.compareButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow: 0 10px 24px rgba(21, 54, 95, 0.3);
+}
+
+.addColumnButton:disabled,
+.compareButton:disabled {
+  background: #94a3b8;
+  box-shadow: none;
+}
+
+.filePickerLabel {
+  border-color: #c3d6ea;
+  background: #eaf3ff;
+  color: #1d4f86;
+}
+
+.filePickerLabel:hover {
+  background: #1d4f86;
+  border-color: #1d4f86;
+  color: #ffffff;
+}
+
+.textButton {
+  color: #1d4f86;
+  border-radius: 8px;
+  padding: 4px 8px;
+}
+
+.textButton:hover {
+  background: #eaf3ff;
+}
+
+.exportButton {
+  border-color: #1d4f86;
+  background: #ffffff;
+  color: #1d4f86;
+}
+
+.exportButton:hover:not(:disabled) {
+  background: #1d4f86;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.removePairButton {
+  border-color: #f1b5b0;
+  background: #fff5f5;
+  color: #b42318;
+}
+
+.removePairButton:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #ffffff;
+}
+
+.arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #1d4f86;
+}
+
+/* ---- Cards / inputs ---- */
+.uploadCard,
+.mappingCard,
+.columnPairSection,
+.summaryBox,
+.compareResultBox,
+.compareSideCard {
+  border-color: #d3e2f2;
+  border-radius: 14px;
+}
+
+.uploadCard,
+.mappingCard {
+  background: linear-gradient(180deg, #ffffff 0%, #f6f9fd 100%);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.uploadCard:hover,
+.mappingCard:hover {
+  border-color: #9db7d2;
+  box-shadow: 0 8px 22px rgba(17, 50, 85, 0.08);
+}
+
+.uploadCardHeader h3,
+.mappingCard h3,
+.columnPairHeader h3,
+.compareSideHeader h4 {
+  color: #15365f;
+}
+
+.mappingCard select,
+.columnPairRow select {
+  border-color: #cbd9e8;
+  border-radius: 10px;
+  background-color: #f6f9fd;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mappingCard select:hover:not(:disabled),
+.columnPairRow select:hover {
+  border-color: #a9bfd8;
+}
+
+.mappingCard select:focus,
+.columnPairRow select:focus {
+  outline: none;
+  border-color: #1d4f86;
+  box-shadow: 0 0 0 4px rgba(29, 79, 134, 0.14);
+  background-color: #ffffff;
+}
+
+.likeCheckbox input {
+  accent-color: #1d4f86;
+}
+
+.infoText {
+  color: #1d4f86;
+}
+
+.compareSideHeader span {
+  background: #e3effb;
+  color: #15365f;
+}
+
+.mismatchTh {
+  background: linear-gradient(180deg, #e6f0fb 0%, #d6e5f6 100%);
+  color: #15365f;
+}
+
+.mismatchTable tbody tr:nth-child(even) {
+  background: #f8fbfe;
+}
+
+.mismatchTable tbody tr:hover {
+  background: #eef5fc;
+}

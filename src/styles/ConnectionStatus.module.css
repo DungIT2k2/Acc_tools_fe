@@ -49,15 +49,3 @@
     font-size: 13px;
   }
 }
-
-@media (prefers-color-scheme: dark) {
-  .container {
-    border-color: rgba(255, 255, 255, 0.12);
-    background: rgba(17, 24, 39, 0.92);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.24);
-  }
-
-  .label {
-    color: #f9fafb;
-  }
-}

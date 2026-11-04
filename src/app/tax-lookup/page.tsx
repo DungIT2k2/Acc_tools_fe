@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "../../styles/taxLookup.module.css";
 import callApi, { getErrorMessageAsync } from "@/src/lib/axios";
+import { ArrowLeftIcon } from "@/src/components/Icons";
 import Tesseract from "tesseract.js";
 
 type CaptchaInfo = {
@@ -236,7 +237,7 @@ export default function TaxLookupPage() {
         <div className={styles.page}>
             <div className={styles.card}>
                 <button className={styles.backBtn} onClick={() => router.push("/menu")}>
-                    ← Quay lại menu
+                    <ArrowLeftIcon size={16} /> Quay lại menu
                 </button>
                 <h1 className={styles.title}>Tra cứu mã số thuế</h1>
                 <p className={styles.subtitle}>Nhập mã số thuế và mã captcha để tra cứu thông tin</p>
@@ -283,7 +284,7 @@ export default function TaxLookupPage() {
                 <div className={styles.field}>
                     <label className={styles.label}>Mã captcha</label>
                     <div className={styles.captchaRow}>
-                        <div className={styles.captchaImageBox} onClick={() => loadCaptcha()} title="Nhấn để tải captcha mới">
+                        <div data-keep-light className={styles.captchaImageBox} onClick={() => loadCaptcha()} title="Nhấn để tải captcha mới">
                             {captchaImageUrl ? (
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img src={captchaImageUrl} alt="Captcha" className={styles.captchaImage} />

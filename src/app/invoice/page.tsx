@@ -7,6 +7,8 @@ import callApi, { getErrorMessageAsync } from "@/src/lib/axios";
 import { decodeTokenPayload } from "@/src/lib/jwt";
 import { DynamicTable, type DynamicTableColumn } from "@/src/components/DynamicTable";
 import InvoiceViewer from "@/src/components/InvoiceViewer";
+import Santa from "@/src/components/Santa";
+import { ArrowLeftIcon, ChevronRightIcon, LockIcon, LogoutIcon, MenuIcon, UserIcon } from "@/src/components/Icons";
 import { useRouter } from "next/navigation";
 
 type InvoiceRow = {
@@ -1904,7 +1906,7 @@ export default function InvoicePage() {
                                             className={`${styles.collapseButton} ${collapsedTables[collapseKey] ? styles.collapseButtonCollapsed : ""}`}
                                             onClick={() => toggleTableSection(collapseKey)}
                                         >
-                                            <span>&gt;</span>
+                                            <span><ChevronRightIcon size={16} /></span>
                                         </button>
                                         <h3>{section.title}</h3>
                                     </div>
@@ -1940,23 +1942,10 @@ export default function InvoicePage() {
                                 type="button"
                                 className={styles.bearButton}
                                 onClick={() => setIsBearCovered((prev) => !prev)}
-                                aria-label={shouldCoverBearEyes ? "Gấu mở mắt" : "Gấu che mắt"}
+                                aria-label={shouldCoverBearEyes ? "Ông già Noel mở mắt" : "Ông già Noel che mắt"}
                                 aria-pressed={shouldCoverBearEyes}
                             >
-                                <div className={`${styles.bearFace} ${shouldCoverBearEyes ? styles.bearFaceCover : ""}`}>
-                                    <span className={`${styles.bearEar} ${styles.bearEarLeft}`}></span>
-                                    <span className={`${styles.bearEar} ${styles.bearEarRight}`}></span>
-
-                                    <div className={styles.bearHead}>
-                                        <span className={`${styles.bearEye} ${styles.bearEyeLeft}`}></span>
-                                        <span className={`${styles.bearEye} ${styles.bearEyeRight}`}></span>
-                                        <span className={styles.bearNose}></span>
-                                        <span className={styles.bearMouth}></span>
-                                    </div>
-
-                                    <span className={`${styles.bearPaw} ${styles.bearPawLeft}`}></span>
-                                    <span className={`${styles.bearPaw} ${styles.bearPawRight}`}></span>
-                                </div>
+                                <Santa covered={shouldCoverBearEyes} />
                             </button>
                         </div>
 
@@ -1965,22 +1954,27 @@ export default function InvoicePage() {
                         <form onSubmit={handleLoginSubmit}>
                             <div className={styles.field}>
                                 <label>Tài khoản</label>
-                                <input
-                                    type="text"
-                                    value={username}
-                                    onChange={(e) => setUsername(e.target.value)}
-                                />
+                                <div className={styles.iconField}>
+                                    <UserIcon size={18} className={styles.fieldIcon} />
+                                    <input
+                                        type="text"
+                                        value={username}
+                                        onChange={(e) => setUsername(e.target.value)}
+                                        className={styles.inputWithIcon}
+                                    />
+                                </div>
                             </div>
 
                             <div className={styles.field}>
                                 <label>Mật khẩu</label>
-                                <div className={styles.passwordField}>
+                                <div className={`${styles.passwordField} ${styles.iconField}`}>
+                                    <LockIcon size={18} className={styles.fieldIcon} />
                                     <input
                                         ref={passwordInputRef}
                                         type={showPassword ? "text" : "password"}
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className={styles.passwordInput}
+                                        className={`${styles.passwordInput} ${styles.inputWithIcon}`}
                                     />
                                     <button
                                         type="button"
@@ -2023,6 +2017,7 @@ export default function InvoicePage() {
                                 <label>Captcha</label>
                                 <div
                                     className={styles.captchaBox}
+                                    data-keep-light
                                     onClick={loadCaptcha}
                                     dangerouslySetInnerHTML={{ __html: captchaSvg }}
                                 />
@@ -2084,7 +2079,7 @@ export default function InvoicePage() {
                         </div>
 
                         <button className={styles.secondaryButton} onClick={handleBackToMenu}>
-                            Về menu
+                            <ArrowLeftIcon size={16} /> Về menu
                         </button>
                     </div>
                 </div>
@@ -2094,7 +2089,7 @@ export default function InvoicePage() {
                         <div className={styles.userInfo}>
                             <p><strong>Tài khoản:</strong> {usernameInvoice}</p>
                             <button className={styles.logoutButton} onClick={handleLogout} disabled={isLoggingOut}>
-                                {isLoggingOut ? "Đang đăng xuất..." : "Đăng xuất"}
+                                <LogoutIcon size={16} /> {isLoggingOut ? "Đang đăng xuất..." : "Đăng xuất"}
                             </button>
                         </div>
 
@@ -2124,7 +2119,7 @@ export default function InvoicePage() {
                     <section className={styles.rightPanel}>
                         <div className={styles.contentToolbar}>
                             <button className={styles.menuToggleButton} onClick={() => setIsSidebarOpen((prev) => !prev)}>
-                                {isSidebarOpen ? "Đóng menu" : "Mở menu chức năng"}
+                                <MenuIcon size={18} /> {isSidebarOpen ? "Đóng menu" : "Mở menu chức năng"}
                             </button>
                         </div>
                         <h2 className={selectedFeature === 1 ? styles.titlePurchase : styles.titleSold}>

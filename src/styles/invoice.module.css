@@ -40,128 +40,6 @@
   border-radius: 16px;
 }
 
-.bearFace {
-  position: relative;
-  width: 104px;
-  height: 86px;
-}
-
-.bearEar {
-  position: absolute;
-  top: 3px;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: #9f6f42;
-  z-index: 1;
-}
-
-.bearEar::after {
-  content: "";
-  position: absolute;
-  top: 7px;
-  left: 7px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #c99767;
-}
-
-.bearEarLeft {
-  left: 10px;
-}
-
-.bearEarRight {
-  right: 10px;
-}
-
-.bearHead {
-  position: absolute;
-  top: 16px;
-  left: 12px;
-  width: 80px;
-  height: 66px;
-  border-radius: 50% 50% 45% 45%;
-  background: linear-gradient(180deg, #b88450 0%, #9a6b3f 100%);
-  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.08);
-  z-index: 2;
-}
-
-.bearEye {
-  position: absolute;
-  top: 24px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #1f2d3d;
-  transition: transform 0.2s ease, opacity 0.2s ease;
-}
-
-.bearEyeLeft {
-  left: 20px;
-}
-
-.bearEyeRight {
-  right: 20px;
-}
-
-.bearNose {
-  position: absolute;
-  top: 31px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 16px;
-  height: 12px;
-  border-radius: 45% 45% 55% 55%;
-  background: #2b1b0f;
-}
-
-.bearMouth {
-  position: absolute;
-  top: 46px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 24px;
-  height: 12px;
-  border-bottom: 2px solid #6b4527;
-  border-radius: 0 0 50% 50%;
-}
-
-.bearPaw {
-  position: absolute;
-  top: 52px;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: #9f6f42;
-  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.12);
-  z-index: 4;
-  transition: top 0.24s ease, transform 0.24s ease;
-}
-
-.bearPawLeft {
-  left: 22px;
-}
-
-.bearPawRight {
-  right: 22px;
-}
-
-.bearFaceCover .bearPawLeft {
-  top: 30px;
-  transform: rotate(-16deg);
-}
-
-.bearFaceCover .bearPawRight {
-  top: 30px;
-  transform: rotate(16deg);
-}
-
-.bearFaceCover .bearEye {
-  transform: translateY(6px);
-  opacity: 0;
-}
-
 .loginTitle {
   margin: 0 0 20px;
   font-size: 24px;
@@ -1823,4 +1701,410 @@
   background: #f0fdf4;
   color: #166534;
   font-size: 14px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Modern theme (đồng bộ với menu / login)
+   Chỉ đổi màu, bo góc, bóng, icon – KHÔNG đổi kích thước popup
+   xem hoá đơn / in hoá đơn.
+   ═══════════════════════════════════════════════════════════ */
+.page {
+  background:
+    radial-gradient(circle at 0% 0%, rgba(29, 79, 134, 0.14), transparent 42%),
+    radial-gradient(circle at 100% 100%, rgba(33, 165, 138, 0.14), transparent 38%),
+    linear-gradient(150deg, #f7fbff 0%, #ebf1f8 55%, #dfe8f2 100%);
+  background-attachment: fixed;
+}
+
+/* ---- Login ---- */
+.loginCard {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  border-color: #d7e0ea;
+  box-shadow: 0 24px 60px rgba(18, 52, 87, 0.18);
+}
+
+.loginCard::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  height: 5px;
+  background: linear-gradient(90deg, #1d4f86, #21a58a);
+}
+
+.loginTitle {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #0f2748;
+}
+
+.iconField {
+  position: relative;
+  display: block;
+}
+
+.fieldIcon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #8aa0b8;
+  pointer-events: none;
+  transition: color 0.2s ease;
+}
+
+.iconField:focus-within .fieldIcon {
+  color: #1d4f86;
+}
+
+.field input.inputWithIcon {
+  width: 100%;
+  box-sizing: border-box;
+  padding-left: 42px;
+}
+
+.field input.passwordInput {
+  padding-right: 44px;
+}
+
+.field label {
+  font-size: 13px;
+  color: #344a61;
+}
+
+.field input,
+.selectField {
+  border-color: #cbd9e8;
+  border-radius: 10px;
+  background-color: #f6f9fd;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.field input:hover:not(:focus),
+.selectField:hover:not(:focus) {
+  border-color: #a9bfd8;
+}
+
+.field input:focus,
+.selectField:focus {
+  background-color: #ffffff;
+  border-color: #1d4f86;
+  box-shadow: 0 0 0 4px rgba(29, 79, 134, 0.14);
+}
+
+.captchaBox {
+  border-radius: 10px;
+  border-color: #cbd9e8;
+  background: #f6f9fd;
+}
+
+.passwordToggle:hover {
+  color: #15365f;
+}
+
+/* ---- Buttons chung ---- */
+.loginButton,
+.secondaryButton,
+.logoutButton,
+.menuToggleButton,
+.quickLoginButton,
+.exportButton,
+.detailButton,
+.compareButton,
+.autoModeButton,
+.taskQueueOpenButton {
+  border-radius: 10px;
+  font-family: inherit;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease,
+    border-color 0.18s ease, color 0.18s ease, filter 0.18s ease;
+}
+
+.secondaryButton,
+.logoutButton,
+.menuToggleButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.loginButton:hover:not(:disabled),
+.exportButton:hover:not(:disabled),
+.detailButton:hover:not(:disabled),
+.compareButton:hover:not(:disabled),
+.autoModeButton:hover:not(:disabled),
+.taskQueueOpenButton:hover:not(:disabled),
+.quickLoginButton:hover:not(:disabled),
+.secondaryButton:hover:not(:disabled),
+.menuToggleButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.loginButton {
+  background: linear-gradient(135deg, #1d4f86, #15365f);
+  box-shadow: 0 6px 16px rgba(21, 54, 95, 0.22);
+}
+
+.loginButton:hover:not(:disabled) {
+  box-shadow: 0 10px 24px rgba(21, 54, 95, 0.32);
+  filter: brightness(1.05);
+}
+
+.loginButton:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
+.secondaryButton {
+  border-color: #cbd9e8;
+  color: #15365f;
+}
+
+.secondaryButton:hover:not(:disabled) {
+  background: #f1f6fb;
+  border-color: #9db7d2;
+}
+
+.quickLoginSection {
+  border-color: #d3e2f2;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #f9fcff 0%, #f1f7fd 100%);
+}
+
+.quickLoginHeader h3 {
+  color: #15365f;
+}
+
+.refreshRecentButton {
+  border-color: #c3d6ea;
+  background: #eaf3ff;
+  color: #1d4f86;
+  border-radius: 999px;
+}
+
+.quickLoginOption {
+  border-color: #d3e2f2;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.quickLoginOption:hover {
+  border-color: #1d4f86;
+  background: #f6faff;
+}
+
+.quickLoginOption input {
+  accent-color: #1d4f86;
+}
+
+.quickLoginButton {
+  border-color: #1d4f86;
+  color: #1d4f86;
+}
+
+.quickLoginButton:hover:not(:disabled) {
+  background: #1d4f86;
+  color: #ffffff;
+}
+
+/* ---- Dashboard ---- */
+.leftPanel {
+  border-radius: 16px;
+  border-color: #d7e0ea;
+  box-shadow: 0 18px 44px rgba(17, 50, 85, 0.16);
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.userInfo {
+  border-bottom-color: #e1e9f2;
+}
+
+.userInfo p {
+  color: #15365f;
+}
+
+.menuButton {
+  border-color: #d3e2f2;
+  border-radius: 10px;
+  background: #f6f9fd;
+  color: #15365f;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.menuButton:hover {
+  background: #eaf3ff;
+  border-color: #9db7d2;
+  transform: translateX(2px);
+}
+
+.menuButtonActive,
+.menuButtonActive:hover {
+  background: linear-gradient(135deg, #1d4f86, #15365f);
+  border-color: #15365f;
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(21, 54, 95, 0.25);
+}
+
+.logoutButton {
+  background: #fff5f5;
+  border: 1px solid #f1b5b0;
+  color: #b42318;
+}
+
+.logoutButton:hover:not(:disabled) {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(220, 38, 38, 0.25);
+}
+
+.rightPanel {
+  border-radius: 18px;
+  border-color: #d7e0ea;
+  box-shadow: 0 18px 44px rgba(17, 50, 85, 0.12);
+  position: relative;
+  overflow: hidden;
+}
+
+.rightPanel::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #1d4f86, #21a58a);
+}
+
+.rightPanel h2 {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.titlePurchase {
+  color: #0d9488;
+}
+
+.titleSold {
+  color: #c2410c;
+}
+
+.menuToggleButton {
+  border-color: #c3d6ea;
+  background: #eaf3ff;
+  color: #1d4f86;
+}
+
+.menuToggleButton:hover {
+  background: #1d4f86;
+  border-color: #1d4f86;
+  color: #ffffff;
+}
+
+.sidebarBackdrop {
+  background: rgba(15, 39, 72, 0.28);
+  backdrop-filter: blur(2px);
+}
+
+.previewBox {
+  border-color: #d3e2f2;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #f9fcff 0%, #eef5fc 100%);
+}
+
+.filterPanel {
+  border-color: #d3e2f2;
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(17, 50, 85, 0.06);
+}
+
+.filterActions .secondaryButton {
+  background: #e3f6ee;
+  border-color: #9fdcc4;
+  color: #0f766e;
+}
+
+.filterActions .secondaryButton:hover:not(:disabled) {
+  background: #cdeee0;
+  border-color: #6fc9a8;
+}
+
+.exportButton {
+  border-color: #1d4f86;
+  color: #1d4f86;
+}
+
+.exportButton:hover:not(:disabled) {
+  background: #1d4f86;
+  color: #ffffff;
+}
+
+.detailButton:hover:not(:disabled) {
+  background: #0369a1;
+  color: #ffffff;
+}
+
+.compareButton:hover:not(:disabled) {
+  background: #0f766e;
+  color: #ffffff;
+}
+
+.taskQueueOpenButton:hover:not(:disabled) {
+  background: #6d28d9;
+  color: #ffffff;
+}
+
+.autoModeButton:hover:not(.autoModeButtonActive) {
+  border-color: #64748b;
+  background: #f1f5f9;
+}
+
+/* ---- Bảng dữ liệu ---- */
+.tableSection {
+  border-color: #d3e2f2;
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(17, 50, 85, 0.05);
+}
+
+.sectionHeader h3 {
+  color: #15365f;
+}
+
+.collapseButton {
+  border-color: #c3d6ea;
+  background: #eaf3ff;
+  color: #1d4f86;
+  border-radius: 8px;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+.collapseButton svg {
+  display: block;
+}
+
+.dataTableWrapper {
+  border-color: #d3e2f2;
+  border-radius: 10px;
+}
+
+.tableHeadCell {
+  background: linear-gradient(180deg, #e6f0fb 0%, #d6e5f6 100%);
+  color: #15365f;
+  border-color: #c3d6ea;
+}
+
+.tableCell {
+  border-color: #e1e9f2;
+}
+
+.dataTable tbody tr:nth-child(even) .tableCell {
+  background: #f8fbfe;
+}
+
+.dataTable tbody tr:hover .tableCell {
+  background: #eef5fc;
 }

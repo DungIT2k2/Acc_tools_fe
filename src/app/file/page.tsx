@@ -4,6 +4,7 @@ import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } f
 import { useRouter } from "next/navigation";
 import callApi, { getErrorMessageAsync } from "@/src/lib/axios";
 import styles from "../../styles/fileCompare.module.css";
+import { ArrowLeftIcon, ExportIcon, PlusIcon, SwapIcon, TrashIcon, UploadIcon } from "@/src/components/Icons";
 
 type SheetHeaderItem = {
 	sheetName: string;
@@ -616,7 +617,7 @@ export default function FileComparePage() {
 						className={styles.menuButton}
 						onClick={() => router.push("/menu")}
 					>
-						Về menu
+						<ArrowLeftIcon size={16} /> Về menu
 					</button>
 				</div>
 			</section>
@@ -630,7 +631,7 @@ export default function FileComparePage() {
 							className={styles.addButton}
 							onClick={handleAddSecondSlot}
 						>
-							+ Thêm file thứ 2
+							<PlusIcon size={16} /> Thêm file thứ 2
 						</button>
 					)}
 				</div>
@@ -658,6 +659,7 @@ export default function FileComparePage() {
 									onChange={(event) => void handleFileChange(slot.id, event)}
 									className={styles.fileInput}
 								/>
+								<UploadIcon size={16} />
 								<span>{slot.fileName ? "Đổi file" : "Chọn file"}</span>
 							</label>
 
@@ -814,7 +816,7 @@ export default function FileComparePage() {
 										</option>
 									))}
 								</select>
-								<span className={styles.arrow}>↔</span>
+								<span className={styles.arrow}><SwapIcon size={18} /></span>
 								<select
 									value={pair.rightColumn}
 									onChange={(event) => updateColumnPair(pair.id, "right", event.target.value)}
@@ -841,7 +843,7 @@ export default function FileComparePage() {
 										className={styles.removePairButton}
 										onClick={() => handleRemoveColumnPair(pair.id)}
 									>
-										Xóa
+										<TrashIcon size={14} /> Xóa
 									</button>
 								)}
 										</>
@@ -894,6 +896,7 @@ export default function FileComparePage() {
 							onClick={() => void handleExportCompareResult()}
 							disabled={!canExport || isExporting}
 						>
+							<ExportIcon size={16} />
 							{isExporting ? "Đang xuất..." : "Xuất kết quả"}
 						</button>
 					</div>

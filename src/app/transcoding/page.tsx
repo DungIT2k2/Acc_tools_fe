@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "../../styles/transcoding.module.css";
 import callApi from "@/src/lib/axios";
+import { ArrowLeftIcon, CloseIcon, FileCheckIcon, UploadIcon } from "@/src/components/Icons";
 
 const TRANSCODING_TYPES = [
     { value: "VniToUni", label: "VNI-Times → Unicode" },
@@ -127,7 +128,7 @@ export default function TranscodingPage() {
         <div className={styles.page}>
             <div className={styles.card}>
                 <button className={styles.backBtn} onClick={() => router.push("/menu")}>
-                    ← Quay lại menu
+                    <ArrowLeftIcon size={16} /> Quay lại menu
                 </button>
                 <h1 className={styles.title}>Chuyển mã Excel</h1>
                 <p className={styles.subtitle}>Import file Excel và chuyển mã ngay lập tức</p>
@@ -142,10 +143,10 @@ export default function TranscodingPage() {
                 >
                     {file && (
                         <button className={styles.clearBtn} onClick={handleClear} title="Xóa file">
-                            ✕
+                            <CloseIcon size={16} />
                         </button>
                     )}
-                    <span className={styles.dropZoneIcon}>{file ? "📊" : "📂"}</span>
+                    <span className={styles.dropZoneIcon}>{file ? <FileCheckIcon size={44} /> : <UploadIcon size={44} />}</span>
                     {file ? (
                         <p className={styles.dropZoneFileName}>{file.name}</p>
                     ) : (

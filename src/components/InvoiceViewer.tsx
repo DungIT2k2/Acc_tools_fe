@@ -99,7 +99,7 @@ export default function InvoiceViewer({ data, isSco }: Props) {
   })();
 
   return (
-    <div className={styles.invoiceA4}>
+    <div className={styles.invoiceA4} data-keep-light>
       <div className={styles.invHeader}>
 
         <div className={styles.invHeaderTop}>

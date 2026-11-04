@@ -1,7 +1,10 @@
 .page {
   height: 100vh;
   overflow: hidden;
-  background: #f4f6fb;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(29, 79, 134, 0.14), transparent 42%),
+    radial-gradient(circle at 100% 100%, rgba(33, 165, 138, 0.14), transparent 38%),
+    linear-gradient(150deg, #f7fbff 0%, #ebf1f8 55%, #dfe8f2 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -14,8 +17,20 @@
   background: #ffffff;
   border-radius: 16px;
   border: 1px solid #e3e8f2;
-  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 20px 50px rgba(17, 50, 85, 0.14);
   padding: 36px 32px;
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  height: 5px;
+  background: linear-gradient(90deg, #1d4f86, #21a58a);
 }
 
 .backBtn {
@@ -46,9 +61,10 @@
 }
 
 .title {
-  font-size: 22px;
-  font-weight: 700;
-  color: #1e293b;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #0f2748;
   margin: 0 0 6px 0;
   text-align: center;
 }
@@ -78,12 +94,17 @@
   background: #eff6ff;
 }
 
+.dropZoneHasFile .dropZoneIcon {
+  color: #16a34a;
+}
+
 .dropZoneHasFile {
   border-color: #22c55e;
   background: #f0fdf4;
 }
 
 .dropZoneIcon {
+  color: #3b82f6;
   font-size: 40px;
   margin-bottom: 10px;
   display: block;

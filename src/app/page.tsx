@@ -6,6 +6,8 @@ import callApi from "../lib/axios";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
 import { isTokenValid } from "../lib/jwt";
+import { LockIcon, UserIcon } from "../components/Icons";
+import Santa from "../components/Santa";
 
 export default function Home() {
   const [username, setUsername] = useState("");
@@ -63,50 +65,42 @@ export default function Home() {
               type="button"
               className={styles.bearButton}
               onClick={() => setIsBearCovered((prev) => !prev)}
-              aria-label={shouldCoverBearEyes ? "Gấu mở mắt" : "Gấu che mắt"}
+              aria-label={shouldCoverBearEyes ? "Ông già Noel mở mắt" : "Ông già Noel che mắt"}
               aria-pressed={shouldCoverBearEyes}
             >
-              <div className={`${styles.bearFace} ${shouldCoverBearEyes ? styles.bearFaceCover : ""}`}>
-                <span className={`${styles.bearEar} ${styles.bearEarLeft}`}></span>
-                <span className={`${styles.bearEar} ${styles.bearEarRight}`}></span>
-
-                <div className={styles.bearHead}>
-                  <span className={`${styles.bearEye} ${styles.bearEyeLeft}`}></span>
-                  <span className={`${styles.bearEye} ${styles.bearEyeRight}`}></span>
-                  <span className={styles.bearNose}></span>
-                  <span className={styles.bearMouth}></span>
-                </div>
-
-                <span className={`${styles.bearPaw} ${styles.bearPawLeft}`}></span>
-                <span className={`${styles.bearPaw} ${styles.bearPawRight}`}></span>
-              </div>
+              <Santa covered={shouldCoverBearEyes} />
             </button>
           </div>
-
           <h2 className={styles.title}>Đăng nhập hệ thống</h2>
           <p className={styles.subTitle}>Sử dụng tài khoản nội bộ để tiếp tục</p>
 
           <form onSubmit={handleLogin}>
             <div className={styles.inputGroup}>
-              <label className={styles.label}>Tài khoản</label>
-              <input
-                type="text"
-                className={styles.input}
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Nhập tài khoản"
-                autoComplete="username"
-                required
-              />
+              <label className={styles.label} htmlFor="username">Tài khoản</label>
+              <div className={styles.field}>
+                <UserIcon size={18} className={styles.fieldIcon} />
+                <input
+                  id="username"
+                  type="text"
+                  className={`${styles.input} ${styles.inputWithIcon}`}
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Nhập tài khoản"
+                  autoComplete="username"
+                  required
+                />
+              </div>
             </div>
 
             <div className={styles.inputGroup}>
-              <label className={styles.label}>Mật khẩu</label>
-              <div className={styles.passwordField}>
+              <label className={styles.label} htmlFor="password">Mật khẩu</label>
+              <div className={`${styles.passwordField} ${styles.field}`}>
+                <LockIcon size={18} className={styles.fieldIcon} />
                 <input
+                  id="password"
                   ref={passwordInputRef}
                   type={showPassword ? "text" : "password"}
-                  className={`${styles.input} ${styles.passwordInput}`}
+                  className={`${styles.input} ${styles.inputWithIcon} ${styles.passwordInput}`}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Nhập mật khẩu"
