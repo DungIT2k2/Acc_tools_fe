@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import styles from "../../styles/taxLookup.module.css";
 import callApi, { getErrorMessageAsync } from "@/src/lib/axios";
 import { ArrowLeftIcon } from "@/src/components/Icons";
-import { recognizeCaptcha } from "@/src/lib/captchaOcr";
+import { recognizeCaptcha, CAPTCHA_LENGTH } from "@/src/lib/captchaOcr";
+
+const CAPTCHA_MAX_ATTEMPTS = 3;
 
 type CaptchaInfo = {
     lookupId: string;
@@ -144,18 +146,30 @@ export default function TaxLookupPage() {
 
         const request = (async () => {
             try {
-                const infoRes = await callApi.get("/tax/captcha", { params: { type: entityType } });
-                const { lookupId, expiresAt, contentType, image } = infoRes.data as CaptchaResponse;
-                const url = `data:${contentType};base64,${image}`;
+                for (let attempt = 1; attempt <= CAPTCHA_MAX_ATTEMPTS; attempt++) {
+                    const infoRes = await callApi.get("/tax/captcha", { params: { type: entityType } });
+                    const { lookupId, expiresAt, contentType, image } = infoRes.data as CaptchaResponse;
+                    const url = `data:${contentType};base64,${image}`;
 
-                setCaptchaInfo({ lookupId, expiresAt });
-                setCaptchaImageUrl(url);
+                    setCaptchaInfo({ lookupId, expiresAt });
+                    setCaptchaImageUrl(url);
 
-                try {
-                    setCaptchaValue(await recognizeCaptcha(url));
-                } catch {
-                    setCaptchaValue("");
-                    setError("Không thể tự nhận diện captcha. Vui lòng nhập captcha theo hình.");
+                    let text = "";
+                    try {
+                        text = await recognizeCaptcha(url);
+                    } catch {
+                        text = "";
+                    }
+
+                    // Captcha luôn đúng 5 ký tự; nếu OCR không đủ thì tải captcha mới đọc lại
+                    if (text.length === CAPTCHA_LENGTH) {
+                        setCaptchaValue(text);
+                        break;
+                    }
+                    if (attempt === CAPTCHA_MAX_ATTEMPTS) {
+                        setCaptchaValue(text);
+                        setError("Không thể tự nhận diện captcha. Vui lòng nhập captcha theo hình.");
+                    }
                 }
             } catch (err) {
                 const message = await getErrorMessageAsync(err, "Không thể tải captcha. Vui lòng thử lại.");
