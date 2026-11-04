@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import styles from "../../styles/taxLookup.module.css";
 import callApi, { getErrorMessageAsync } from "@/src/lib/axios";
 import { ArrowLeftIcon } from "@/src/components/Icons";
-import Tesseract from "tesseract.js";
+import { recognizeCaptcha } from "@/src/lib/captchaOcr";
 
 type CaptchaInfo = {
     lookupId: string;
@@ -152,8 +152,7 @@ export default function TaxLookupPage() {
                 setCaptchaImageUrl(url);
 
                 try {
-                    const { data: { text } } = await Tesseract.recognize(url, "eng");
-                    setCaptchaValue(text);
+                    setCaptchaValue(await recognizeCaptcha(url));
                 } catch {
                     setCaptchaValue("");
                     setError("Không thể tự nhận diện captcha. Vui lòng nhập captcha theo hình.");
